@@ -1,0 +1,29 @@
+{{ define "main" }}
+{{- $data := index hugo.Data "nghien-cuu" .Params.dataKey -}}
+{{- $episodes := sort (where .Pages "Layout" "nc-episode") "Weight" -}}
+<article class="lib-doc">
+  <button class="lib-dtrigger" type="button" aria-label="Mở danh sách bài">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/></svg>
+  </button>
+  <div class="lib-doc-eyebrow">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 9 5-9 5-9-5 9-5z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/></svg>
+    Loạt bài
+  </div>
+  <h1 class="lib-doc-title">{{ .Title }}</h1>
+  {{ with .Params.titleEn }}<p class="lib-doc-sub"><em>{{ . }}</em></p>{{ end }}
+  <div class="lib-doc-stats">
+    {{ with .Params.author }}<span>{{ . }}</span>{{ end }}
+    {{ if $data }}<span>·</span><span>{{ $data.totalVideos }} bài</span>{{ end }}
+    {{ with .Params.language }}<span>·</span><span>{{ . }}</span>{{ end }}
+  </div>
+  {{ with .Params.thumb }}<div class="nc-series-thumb"><img src="{{ . | relURL }}" alt=""></div>{{ end }}
+  {{ with .Description }}<p class="lib-doc-sub">{{ . }}</p>{{ end }}
+  {{ with .Content }}<div class="content">{{ . }}</div>{{ end }}
+  {{ with (index $episodes 0) }}
+  <a class="lib-cta" href="{{ .RelPermalink }}">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4v16l13-8z"/></svg>
+    Bắt đầu &middot; Bài {{ .Params.index }}
+  </a>
+  {{ end }}
+</article>
+{{ end }}

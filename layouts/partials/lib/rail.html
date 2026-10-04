@@ -1,0 +1,24 @@
+{{- /* Shared library rail. Call with (dict "active" "<section-key>").
+       Keys: kt, tc, authors, sach, nghien-cuu, tin-ly, truong-sabat. */ -}}
+{{- $a := .active -}}
+{{- $nav := partial "lib/nav-data.html" . -}}
+<aside class="lib-rail">
+  <nav class="lib-rail-nav">
+    {{- range $nav }}
+    <a class="lib-rail-item{{ if and .key (eq $a .key) }} is-active{{ end }}" href="{{ .href }}">{{ partial "lib/nav-icon.html" .icon }}{{ .label }}</a>
+    {{- with .children }}
+    <div class="lib-rail-sub">
+      {{- range . }}
+      <a class="lib-rail-item{{ if and .key (eq $a .key) }} is-active{{ end }}" href="{{ .href }}">{{ partial "lib/nav-icon.html" .icon }}{{ .label }}</a>
+      {{- end }}
+    </div>
+    {{- end }}
+    {{- end }}
+  </nav>
+
+  <a class="lib-rail-brand" href="/">
+    {{ partial "lib/mark.html" . }}
+    <span><span>Thư Viện</span><b>Phúc Âm</b></span>
+  </a>
+</aside>
+{{- partial "lib/navbar.html" (dict "active" .active) -}}

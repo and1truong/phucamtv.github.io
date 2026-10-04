@@ -1,0 +1,28 @@
+{{ define "main" }}
+<div class="lib-doc">
+  <button class="lib-dtrigger" type="button" aria-label="Mở danh sách">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/></svg>
+  </button>
+  <div class="lib-doc-eyebrow">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+    Trường Sa-bát
+  </div>
+  <h1 class="lib-doc-title">{{ .Title }}</h1>
+  {{ with .Content }}<div class="content">{{ . }}</div>{{ end }}
+
+  {{/* group quarters by year, latest year first */}}
+  {{ $years := sort .Sections "Title" "desc" }}
+  {{ range $years }}
+    {{ $qs := sort .Sections "Params.weight" "desc" }}
+    <h3 class="lib-doc-h">{{ .Title }}</h3>
+    <div class="lib-qlist">
+      {{ range $qs }}
+      <a class="lib-qcard" href="{{ .RelPermalink }}">
+        <span class="lib-qcard-title">{{ .Title }}</span>
+        <span class="lib-qcard-meta">{{ len .Sections }} bài học</span>
+      </a>
+      {{ end }}
+    </div>
+  {{ end }}
+</div>
+{{ end }}

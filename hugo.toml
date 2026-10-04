@@ -1,0 +1,66 @@
+baseURL = "https://phucam.tv/"
+locale = "vi"
+title = "Phúc Âm"
+timeZone = "Australia/Brisbane"
+removePathAccents = true
+
+[server]
+  port = 1212
+[pagination]
+  pagerSize = 20
+
+[params]
+  description = "Phúc Âm TV – Chia sẻ Phúc Âm, lẽ thật Kinh Thánh, tín lý và giáo lý Kinh Thánh, giải thích các lời tiên tri cho người Việt Nam."
+  keywords = "Phúc Âm, Kinh Thánh, tín lý, giáo lý, lời tiên tri, Tin Lành, đức tin, Chúa Giê-su, người Việt"
+
+[permalinks]
+  [permalinks.page]
+    articles = "/:sections/:slug/"
+    doctrines = "/tin-ly/:slug/"
+    kt = "/kt/:slug/"
+
+[markup]
+  [markup.goldmark]
+    [markup.goldmark.renderer]
+      unsafe = true
+
+ignoreFiles = ['\.py$', 'output/']
+
+[[module.mounts]]
+  source = "data/series.json"
+  target = "data/series.json"
+
+[[module.mounts]]
+  source = "data/yt/nghien-cuu"
+  target = "data/nghien-cuu"
+
+[[module.mounts]]
+  source = "data/bible"
+  target = "data/bible"
+
+[[module.mounts]]
+  source = "data/games"
+  target = "data/games"
+
+[[module.mounts]]
+  source = "content"
+  target = "content"
+
+[[module.mounts]]
+  source = "static"
+  target = "static"
+
+[[module.mounts]]
+  source = "layouts"
+  target = "layouts"
+
+[[module.mounts]]
+  source = "assets"
+  target = "assets"
+
+[[module.mounts]]
+  source = "archetypes"
+  target = "archetypes"
+
+[taxonomies]
+  tag = "tags"

@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /authors/
+
+Sitemap: https://phucam.tv/sitemap.xml

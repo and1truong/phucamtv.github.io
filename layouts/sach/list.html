@@ -1,0 +1,30 @@
+{{ define "main" }}
+{{- /* Collect books whether this is the library root (authors → books) or an
+       author page (books directly). */ -}}
+{{- $books := slice -}}
+{{- range .Sections -}}
+  {{- if .Sections -}}{{- range .Sections -}}{{ $books = $books | append . }}{{- end -}}
+  {{- else -}}{{ $books = $books | append . }}{{- end -}}
+{{- end -}}
+<div class="lib-doc">
+  <button class="lib-mtrigger lib-mtrigger-solo" type="button" aria-label="Mở thư viện">{{ partial "lib/mark.html" . }}</button>
+  <div class="lib-doc-eyebrow">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></svg>
+    Tủ Sách
+  </div>
+  <h1 class="lib-doc-title">{{ .Title }}</h1>
+  {{ with .Content }}<div class="lib-doc-sub">{{ . }}</div>{{ end }}
+
+  <div class="sach-grid">
+    {{ range $books }}
+    <a class="sach-book" href="{{ .RelPermalink }}">
+      {{ with .Parent }}<span class="sach-book-author">{{ .Title }}</span>{{ end }}
+      <span class="sach-book-title">{{ .Title }}</span>
+      {{ with .Params.subtitle }}<span class="sach-book-sub">{{ . }}</span>{{ end }}
+      {{ with .Params.summary }}<span class="sach-book-summary">{{ . }}</span>{{ end }}
+      <span class="sach-book-meta">{{ len .Pages }} chương{{ with .Params.badge }}<span class="sach-book-badge">{{ . }}</span>{{ end }}</span>
+    </a>
+    {{ end }}
+  </div>
+</div>
+{{ end }}

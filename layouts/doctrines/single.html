@@ -1,0 +1,44 @@
+{{ define "main" }}
+{{- $all := where .CurrentSection.Pages.ByWeight "Weight" "gt" 0 -}}
+{{- $cw := .Weight -}}
+{{- $prev := false }}{{ $next := false }}{{ $found := false -}}
+{{- range $all -}}
+  {{- if and (not $found) (eq .Weight $cw) }}{{ $found = true }}
+  {{- else if not $found }}{{ $prev = . }}
+  {{- else if and $found (not $next) }}{{ $next = . }}{{ end -}}
+{{- end -}}
+
+<article class="lib-doc">
+  <button class="lib-dtrigger" type="button" aria-label="Mở danh sách">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/></svg>
+  </button>
+  <div class="lib-doc-eyebrow">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.4 8.5 8 10 4.6-1.5 8-5 8-10V5z"/></svg>
+    <a class="lib-doc-eyebrow-link" href="/tin-ly/">Tín Lý</a>
+    <span class="lib-doc-eyebrow-sep">·</span>
+    Bài {{ printf "%02d" .Weight }}
+  </div>
+  <h1 class="lib-doc-title">{{ .Title }}</h1>
+
+  <div class="content">{{ .Content }}</div>
+
+  <nav class="nc-prev-next">
+    <div class="nc-prev-next-cell nc-prev-next-prev">
+      {{ with $prev }}
+        <a href="{{ .RelPermalink }}">
+          <span class="nc-prev-next-label">← Bài trước</span>
+          <span class="nc-prev-next-title">Bài {{ printf "%02d" .Weight }} · {{ .Title }}</span>
+        </a>
+      {{ end }}
+    </div>
+    <div class="nc-prev-next-cell nc-prev-next-next">
+      {{ with $next }}
+        <a href="{{ .RelPermalink }}">
+          <span class="nc-prev-next-label">Bài kế →</span>
+          <span class="nc-prev-next-title">Bài {{ printf "%02d" .Weight }} · {{ .Title }}</span>
+        </a>
+      {{ end }}
+    </div>
+  </nav>
+</article>
+{{ end }}

@@ -1,0 +1,473 @@
+/* Bible Quest games — part of the library app shell.
+   Scoped under .lib-app so it inherits the shell and beats its base resets
+   (e.g. `.lib-app button { background: none }`), themed via site tokens. */
+
+.lib-app .games {
+  font-family: "Be Vietnam Pro", system-ui, sans-serif;
+  color: var(--text-body);
+  max-width: 900px;
+  padding: 34px 44px 120px;
+}
+
+/* books-builder: per-slot right/wrong feedback. The only place we depart from
+   the gold-only "correct" signal — per-slot correctness is this game's point.
+   Light values here; dark overridden for both explicit and system dark below. */
+.lib-app .games { --ok: #3f7d4e; --bad: #9c4a1f; }
+@media (prefers-color-scheme: dark) {
+  :root .lib-app .games { --ok: #7fb98c; --bad: #e8a87c; }
+}
+
+.lib-app .games h1,
+.lib-app .games h2 {
+  font-family: Newsreader, Georgia, serif;
+  color: var(--text-strong);
+  font-weight: 600;
+}
+
+.lib-app .games p { color: var(--text-body); }
+
+/* shared button look */
+.lib-app .games button {
+  font: inherit;
+  cursor: pointer;
+  background: var(--surface-raised);
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  padding: 0.5rem 0.9rem;
+  margin: 0.2rem;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+.lib-app .games button:hover:not(:disabled) { background: var(--surface-hover); }
+.lib-app .games button:disabled { cursor: default; opacity: 0.6; }
+
+/* state classes (kept identical to game JS class names) */
+.lib-app .games .correct  { background: var(--surface-soft); border-color: var(--accent); color: var(--text-strong); }
+.lib-app .games .wrong    { background: var(--surface-sunken); border-color: var(--link); color: var(--text-strong); }
+.lib-app .games .matched  { background: var(--surface-soft); border-color: var(--accent); opacity: 0.7; }
+.lib-app .games .selected { outline: 3px solid var(--accent); }
+.lib-app .games .locked   { background: var(--surface-soft); }
+.lib-app .games .filled   { background: var(--surface-tint); }
+
+@keyframes games-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+.lib-app .games .shake { animation: games-shake 0.3s ease-in-out; }
+
+/* hub */
+.lib-app .games-hub {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+  list-style: none;
+  padding: 0;
+}
+.lib-app .games-card {
+  display: block;
+  padding: 1.1rem 1.2rem;
+  background: var(--surface-raised);
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px var(--shadow-soft);
+  text-decoration: none;
+  color: var(--text-strong);
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.lib-app .games-card:hover { border-color: var(--accent); box-shadow: 0 3px 10px var(--shadow-card); }
+.lib-app .games-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-color: var(--accent);
+}
+.lib-app .games-card h2 { margin: 0 0 0.35rem; font-size: 1.15rem; }
+.lib-app .games-card p { margin: 0; color: var(--text-muted); font-size: 0.92rem; }
+
+/* game header: a bar pinned to the top edge of the detail column — the visual
+   twin of .games-bankinfo, mirrored (border-bottom + downward shadow). Rendered
+   in the `header` block of games/baseof.html as a sibling of .lib-detail-scroll,
+   so it sits outside the scroll area and never scrolls away. Horizontal padding
+   (44px / 20px mobile) aligns with the .games content column. */
+.lib-app .games-header {
+  position: relative;
+  z-index: 5;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin: 0;
+  padding: 0.7rem 44px;
+  background: var(--surface-soft);
+  border-bottom: 1px solid var(--border-default);
+  box-shadow: 0 2px 12px var(--shadow-soft);
+}
+.lib-app .games-header .gh-icon {
+  flex: none;
+  width: 34px; height: 34px;
+  display: grid; place-items: center;
+  border-radius: 9px;
+  background: var(--surface-inverse);
+  color: var(--text-on-inverse-strong);
+  font-size: 1.05rem;
+  box-shadow: 0 1px 3px var(--shadow-soft);
+}
+.lib-app .games-header .gh-name {
+  font-family: Newsreader, Georgia, serif;
+  font-weight: 600;
+  color: var(--text-strong);
+  font-size: 1.15rem;
+  margin: 0;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+/* cycle level button: one button, click advances easy → normal → hard.
+   The diamond is color-coded by difficulty. ~96px vs the old 3-button ~180px. */
+.lib-app .games-header .gh-cycle {
+  flex: none;
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0 0 0 0.2rem;
+  padding: 0.4rem 0.7rem;
+  line-height: 1;
+  background: var(--surface-raised);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+.lib-app .games-header .gh-cycle:hover { background: var(--surface-soft); border-color: var(--accent); }
+.lib-app .games-header .gh-cycle .dot {
+  width: 9px; height: 9px; border-radius: 2px;
+  transform: rotate(45deg);
+  background: var(--accent-strong);
+}
+.lib-app .games-header .gh-cycle[data-level="easy"]   .dot { background: var(--accent); }
+.lib-app .games-header .gh-cycle[data-level="normal"] .dot { background: var(--accent-strong); }
+.lib-app .games-header .gh-cycle[data-level="hard"]   .dot { background: var(--link); }
+.lib-app .games-header .gh-cycle .lvl {
+  font-weight: 600;
+  color: var(--text-strong);
+  min-width: 3.4em;
+  text-align: left;
+}
+
+/* right-aligned action buttons: restart + sound */
+.lib-app .games-header .gh-actions { display: flex; gap: 0.3rem; margin-left: auto; }
+.lib-app .games-header .gh-btn {
+  flex: none;
+  width: 34px; height: 34px;
+  display: grid; place-items: center;
+  background: var(--surface-raised);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: 9px;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+.lib-app .games-header .gh-btn:hover { background: var(--surface-soft); border-color: var(--accent); color: var(--text-strong); }
+.lib-app .games-header .gh-btn.is-off { color: var(--text-faint); }
+.lib-app .games-header .gh-btn svg { width: 17px; height: 17px; }
+/* The list button carries .lib-dtrigger. On desktop the JS turns it into the
+   reading-focus cycle (same as the sách reader); on mobile it opens the game
+   list drawer. .gh-btn already gives it the in-bar look at every width, so we
+   only neutralize the .lib-dtrigger FAB positioning here. */
+.lib-app .games-header .lib-dtrigger {
+  display: grid;
+  position: static; top: auto; right: auto; z-index: auto;
+  box-shadow: none;
+}
+/* one SVG per focus state lives in the button; show only the active one */
+.lib-app .games-header .lib-dtrigger .gh-ico { display: none; }
+:root:not([data-lib-focus]) .lib-app .games-header .lib-dtrigger .gh-ico-0,
+:root[data-lib-focus="0"] .lib-app .games-header .lib-dtrigger .gh-ico-0,
+:root[data-lib-focus="1"] .lib-app .games-header .lib-dtrigger .gh-ico-1,
+:root[data-lib-focus="2"] .lib-app .games-header .lib-dtrigger .gh-ico-2 { display: block; }
+
+@media (max-width: 960px) {
+  .lib-app .games-header { padding-left: 20px; padding-right: 20px; }
+}
+
+/* bank-info footer: a bar pinned to the bottom edge of the detail column.
+   It is a sibling of .lib-detail-scroll, rendered in the `bankinfo` block of
+   games/baseof.html, so it sits outside the scroll area and never scrolls
+   away. .lib-detail is a flex column with .lib-detail-scroll: flex 1, so the
+   footer naturally drops to the column's bottom edge. Its horizontal padding
+   (44px / 20px mobile) aligns the stats with the .games content column.
+   The global `footer {}` in base.css makes page footers full-bleed
+   (width:100vw; margin-left: calc(-50vw + 50%); gradient bg; centered);
+   those resets are overridden here so this bar spans just the detail column. */
+.lib-app .games-bankinfo {
+  position: relative;
+  z-index: 5;
+  flex: 0 0 auto;
+  width: auto;
+  margin: 0;
+  background: var(--surface-soft);
+  border-top: 1px solid var(--border-default);
+  box-shadow: 0 -2px 12px var(--shadow-soft);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem;
+  padding: 0.6rem 44px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+.lib-app .games-bankinfo b { color: var(--text-secondary); font-weight: 600; }
+.lib-app .games-bankinfo .gb-sep { color: var(--text-faint); }
+.lib-app .games-bankinfo .gb-dot { color: var(--text-faint); margin: 0 0.1rem; }
+
+/* Mobile (≤960px): the 64px bottom navbar floats over the detail column.
+   Reserve its height at the foot of .lib-detail so the footer stacks above
+   it (same pattern as the floating audio-player-bar). The navbar's own
+   safe-area inset is already covered by the .lib-detail-scroll bottom padding. */
+@media (max-width: 960px) {
+  .lib-app .lib-detail--has-bankinfo { padding-bottom: 64px; }
+  .lib-app .games-bankinfo { padding-left: 20px; padding-right: 20px; }
+}
+
+/* ---- game-specific element styling (token-themed) ---- */
+
+/* who-said-it: the Bible quote */
+.lib-app .games blockquote {
+  font-style: italic;
+  border-left: 3px solid var(--accent);
+  padding: 0.4rem 0 0.4rem 1rem;
+  margin: 0.75rem 0;
+  color: var(--text-secondary);
+}
+/* who-said-it: reserve feedback line height to stop layout shift on answer */
+.lib-app .games #wsi-feedback { min-height: 1.5em; }
+
+/* ===== books-builder: drag & check board ===== */
+.lib-app .games .bb-head { display: flex; align-items: baseline; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.9rem; }
+.lib-app .games .bb-head p { margin: 0; }
+
+.lib-app .games .bb-board { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.15fr); gap: 1rem 2rem; align-items: start; }
+.lib-app .games .bb-col-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.13em; text-transform: uppercase; color: var(--text-faint); margin: 0 0 0.6rem 0.15rem; }
+
+.lib-app .games .bb-pool { display: flex; flex-direction: column; gap: 0.45rem; min-height: 2rem; }
+.lib-app .games .bb-pool.dragover { outline: 2px dashed var(--accent-soft); outline-offset: 4px; border-radius: 10px; }
+
+.lib-app .games .bb-chip {
+  display: flex; align-items: center; gap: 0.55rem;
+  background: var(--surface-raised); color: var(--text-strong);
+  border: 1px solid var(--border-default); border-radius: 9px;
+  padding: 0.5rem 0.7rem; font-size: 0.95rem; cursor: grab; user-select: none;
+  transition: border-color 0.12s, background 0.12s, box-shadow 0.12s, transform 0.08s;
+}
+.lib-app .games .bb-chip:hover { border-color: var(--accent); background: var(--surface-hover); }
+.lib-app .games .bb-chip:active { cursor: grabbing; }
+.lib-app .games .bb-chip.dragging { opacity: 0.45; }
+.lib-app .games .bb-grip { color: var(--text-faint); font-size: 1rem; line-height: 1; flex: none; }
+.lib-app .games .bb-chip .bb-name { flex: 1; }
+
+.lib-app .games .bb-slots { display: flex; flex-direction: column; gap: 0.45rem; }
+.lib-app .games .bb-slot { display: flex; align-items: stretch; gap: 0.55rem; min-height: 2.6rem; border-radius: 9px; }
+.lib-app .games .bb-slot-num {
+  flex: none; width: 30px; display: grid; place-items: center;
+  font-size: 0.78rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text-faint);
+}
+.lib-app .games .bb-drop {
+  flex: 1; display: flex; align-items: center; gap: 0.55rem;
+  border: 1.5px dashed var(--border-strong); border-radius: 9px;
+  background: var(--surface-tint); padding: 0.45rem 0.6rem; min-height: 2.6rem;
+  transition: border-color 0.12s, background 0.12s;
+}
+.lib-app .games .bb-drop.empty { color: var(--text-faint); font-size: 0.85rem; }
+.lib-app .games .bb-drop.dragover { border-color: var(--accent); background: var(--surface-soft); border-style: solid; }
+.lib-app .games .bb-drop.filled { border-style: solid; border-color: var(--border-default); background: var(--surface-raised); }
+.lib-app .games .bb-drop .bb-chip { flex: 1; border: none; background: transparent; padding: 0.15rem 0; }
+.lib-app .games .bb-drop .bb-chip:hover { background: transparent; }
+
+.lib-app .games .bb-slot.correct .bb-drop { border-color: var(--ok); background: var(--surface-soft); border-style: solid; }
+.lib-app .games .bb-slot.correct .bb-slot-num { color: var(--ok); }
+.lib-app .games .bb-slot.wrong .bb-drop { border-color: var(--bad); border-style: solid; }
+.lib-app .games .bb-slot.wrong .bb-slot-num { color: var(--bad); }
+.lib-app .games .bb-mark { flex: none; font-size: 0.95rem; font-weight: 700; width: 1.1rem; text-align: center; }
+.lib-app .games .bb-slot.correct .bb-mark { color: var(--ok); }
+.lib-app .games .bb-slot.wrong .bb-mark { color: var(--bad); }
+.lib-app .games .bb-hint { font-size: 0.72rem; color: var(--text-muted); margin-left: 0.2rem; }
+
+.lib-app .games .bb-controls { display: flex; align-items: center; gap: 0.6rem; margin-top: 1.4rem; flex-wrap: wrap; }
+.lib-app .games .bb-check { background: var(--surface-inverse); color: var(--text-on-inverse-strong); border-color: var(--surface-inverse); }
+.lib-app .games .bb-check:hover:not(:disabled) { background: var(--surface-inverse-hover); border-color: var(--surface-inverse-hover); }
+.lib-app .games .bb-result { font-size: 0.9rem; color: var(--text-secondary); }
+.lib-app .games .bb-result b { color: var(--text-emphasis); }
+
+@keyframes bb-shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+.lib-app .games .bb-slot.shake { animation: bb-shake 0.3s ease-in-out; }
+
+.lib-app .games .bb-finish { margin-top: 1.6rem; padding: 1.1rem 1.3rem; border-radius: 14px; background: var(--surface-soft); border: 1px solid var(--accent); display: none; align-items: center; gap: 1rem; }
+.lib-app .games .bb-finish.show { display: flex; }
+.lib-app .games .bb-seal { flex: none; width: 46px; height: 46px; border-radius: 50%; background: var(--surface-inverse); color: var(--text-on-inverse-strong); display: grid; place-items: center; font-family: Newsreader, serif; font-size: 1.3rem; }
+.lib-app .games .bb-finish h3 { margin: 0 0 0.15rem; font-family: Newsreader, serif; color: var(--text-strong); font-size: 1.15rem; }
+.lib-app .games .bb-finish p { margin: 0; color: var(--text-secondary); font-size: 0.9rem; }
+
+@media (max-width: 620px) {
+  .lib-app .games .bb-board { grid-template-columns: 1fr; gap: 1.4rem; }
+}
+
+/* type-the-verse: text inputs / textarea adopt library tokens */
+.lib-app .games input[type="text"],
+.lib-app .games textarea {
+  font: inherit;
+  color: var(--text-primary);
+  background: var(--surface-base);
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  padding: 0.4rem 0.6rem;
+}
+.lib-app .games input[type="text"]:focus-visible,
+.lib-app .games textarea:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* ---- parable-pairs: connection-first matching board ---- */
+
+/* header: title + live progress */
+.lib-app .games .pp-head { display: flex; align-items: baseline; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.25rem; }
+.lib-app .games .pp-progress { display: flex; align-items: center; gap: 0.5rem; margin-left: auto; }
+.lib-app .games .pp-pips { display: flex; gap: 5px; }
+.lib-app .games .pp-pip { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--accent-soft); transition: 0.25s; }
+.lib-app .games .pp-pip.filled { background: var(--accent); border-color: var(--accent); transform: scale(1.05); }
+.lib-app .games .pp-count { font-size: 0.82rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+
+.lib-app .games .pp-status b { color: var(--text-emphasis); font-weight: 600; }
+
+/* board: two columns with an SVG connector overlay */
+.lib-app .games .pp-stage { position: relative; }
+.lib-app .games .pp-board { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem 2.4rem; align-items: start; }
+.lib-app .games .pp-col-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.13em; text-transform: uppercase; color: var(--text-faint); margin: 0 0 0.6rem 0.15rem; }
+.lib-app .games .pp-list { display: flex; flex-direction: column; gap: 0.7rem; }
+
+/* shared card */
+.lib-app .games .pp-card {
+  position: relative; text-align: left; width: 100%;
+  border-radius: 12px; padding: 0.85rem 1rem;
+  display: flex; align-items: center; gap: 0.7rem;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s, transform 0.12s, opacity 0.3s;
+}
+.lib-app .games .pp-text { flex: 1; }
+.lib-app .games .pp-parable .pp-text { font-family: Newsreader, Georgia, serif; font-weight: 600; font-size: 1.08rem; color: var(--text-strong); }
+.lib-app .games .pp-meaning .pp-text { font-size: 0.93rem; line-height: 1.4; color: var(--text-secondary); }
+
+/* number badge that links a matched pair */
+.lib-app .games .pp-badge {
+  flex: none; width: 24px; height: 24px; border-radius: 50%;
+  display: grid; place-items: center; font-size: 0.72rem; font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  border: 1.5px solid var(--border-strong); color: var(--text-faint);
+  background: var(--surface-base); transition: 0.25s;
+}
+.lib-app .games .pp-parable .pp-badge { order: 2; }
+.lib-app .games .pp-meaning .pp-badge { order: -1; }
+
+/* selected parable */
+.lib-app .games .pp-parable.selected { border-color: var(--accent-strong); background: var(--surface-soft); box-shadow: 0 3px 12px var(--shadow-card); transform: translateY(-1px); }
+.lib-app .games .pp-parable.selected .pp-badge { border-color: var(--accent); color: var(--text-emphasis); border-style: dashed; animation: pp-pulse 1.4s ease-in-out infinite; }
+
+/* armed meanings (a parable is selected) */
+.lib-app .games .pp-board.armed .pp-meaning:not(.matched) { border-color: var(--accent-soft); background: var(--surface-tint); }
+.lib-app .games .pp-board.armed .pp-meaning:not(.matched) .pp-badge { border-style: dashed; border-color: var(--accent-soft); }
+
+/* matched lock state */
+.lib-app .games .pp-card.matched { cursor: default; border-color: var(--accent); background: var(--surface-soft); }
+.lib-app .games .pp-card.matched .pp-badge { background: var(--surface-inverse); color: var(--text-on-inverse-strong); border-color: var(--surface-inverse); animation: pp-pop 0.35s ease; }
+.lib-app .games .pp-card.matched .pp-text { color: var(--text-muted); }
+.lib-app .games .pp-card.just-matched { animation: pp-settle 0.4s ease; }
+.lib-app .games .pp-card.wrong { border-color: var(--link); }
+
+@keyframes pp-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+@keyframes pp-pop { 0% { transform: scale(0.4); } 60% { transform: scale(1.18); } 100% { transform: scale(1); } }
+@keyframes pp-settle { 0% { transform: scale(1.03); } 100% { transform: scale(1); } }
+
+/* connector ribbons */
+.lib-app .games .pp-links { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
+.lib-app .games .pp-links path { fill: none; stroke: var(--accent); stroke-width: 2; opacity: 0.55; stroke-linecap: round; stroke-dasharray: var(--len); stroke-dashoffset: var(--len); animation: pp-draw 0.5s ease forwards; }
+@keyframes pp-draw { to { stroke-dashoffset: 0; } }
+
+/* finish banner */
+.lib-app .games .pp-finish { margin-top: 1.6rem; padding: 1.1rem 1.3rem; border-radius: 14px; background: var(--surface-soft); border: 1px solid var(--accent); display: none; align-items: center; gap: 1rem; animation: pp-settle 0.5s ease; }
+.lib-app .games .pp-finish.show { display: flex; }
+.lib-app .games .pp-seal { flex: none; width: 46px; height: 46px; border-radius: 50%; background: var(--surface-inverse); color: var(--text-on-inverse-strong); display: grid; place-items: center; font-family: Newsreader, serif; font-size: 1.3rem; }
+.lib-app .games .pp-finish-title { margin: 0 0 0.15rem; font-family: Newsreader, serif; color: var(--text-strong); font-size: 1.15rem; }
+.lib-app .games .pp-finish-sub { margin: 0; color: var(--text-secondary); font-size: 0.9rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  .lib-app .games .pp-links path { stroke-dashoffset: 0; animation: none; }
+  .lib-app .games .pp-parable.selected .pp-badge { animation: none; }
+}
+
+/* mobile: single column, connectors don't apply */
+@media (max-width: 620px) {
+  .lib-app .games .pp-board { grid-template-columns: 1fr; gap: 0.7rem; }
+  .lib-app .games .pp-col-label { margin-top: 0.6rem; }
+  .lib-app .games .pp-links { display: none; }
+}
+
+/* ---- speed-typer: Monkeytype-style timed typing test ---- */
+/* The typing stream wants a wider line than the 900px reading column, so the
+   text wraps less and fills the space under the full-bleed header. Scoped via
+   :has(.sp-type) so only this game escapes the shared cap. */
+.lib-app .games:has(.sp-type) { max-width: 1200px; margin-inline: auto; }
+.lib-app .games .sp-top { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 1.6rem; }
+.lib-app .games .sp-ref { margin: 0; color: var(--text-secondary); font-size: 0.95rem; }
+.lib-app .games .sp-ref b { color: var(--text-strong); font-weight: 600; }
+.lib-app .games .sp-timer {
+  font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 1.3rem; font-weight: 500;
+  color: var(--accent); font-variant-numeric: tabular-nums; min-width: 3ch; text-align: right;
+}
+.lib-app .games .sp-timer.warn { color: var(--link); }
+
+.lib-app .games .sp-type { position: relative; cursor: text; padding: 0.5rem 0; }
+/* The text window: capped to 3 lines; the active line scrolls into view.
+   overflow:hidden + scrollTop drives the scroll (no transform). */
+.lib-app .games .sp-text {
+  font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 1.7rem; line-height: 2.7rem; letter-spacing: 0.01em;
+  max-height: 8.1rem; overflow: hidden; scroll-behavior: auto;
+  scrollbar-width: none;
+}
+.lib-app .games .sp-text::-webkit-scrollbar { display: none; }
+/* A word stays intact (never split mid-word) but wraps at spaces between words. */
+.lib-app .games .sp-word { display: inline-block; white-space: nowrap; }
+.lib-app .games .sp-char { color: var(--text-muted); position: relative; }
+.lib-app .games .sp-char.correct { color: var(--text-strong); }
+.lib-app .games .sp-char.wrong { color: var(--link); background: color-mix(in srgb, var(--link) 16%, transparent); border-radius: 2px; }
+.lib-app .games .sp-char.active { color: var(--text-strong); }
+/* Caret = a CSS pseudo-element on the active char; rides the char, no JS math. */
+.lib-app .games .sp-char.active::before {
+  content: ""; position: absolute; left: -1px; top: 14%; height: 72%;
+  width: 2px; background: var(--accent); border-radius: 2px;
+  animation: sp-blink 1.05s steps(1) infinite;
+}
+@keyframes sp-blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+
+.lib-app .games .sp-live { display: flex; gap: 1.6rem; margin-top: 1.4rem; font-size: 0.82rem; color: var(--text-muted); }
+.lib-app .games .sp-live b { color: var(--text-secondary); font-family: "JetBrains Mono", monospace; font-variant-numeric: tabular-nums; }
+.lib-app .games .sp-hint { margin-top: 0.9rem; font-size: 0.85rem; color: var(--text-muted); }
+.lib-app .games .sp-input { position: absolute; opacity: 0.01; left: -9999px; width: 1px; height: 1px; }
+
+/* result screen */
+.lib-app .games .sp-result { text-align: center; padding: 1rem 0 0.5rem; }
+.lib-app .games .sp-result .big { font-family: Newsreader, serif; font-size: 4.5rem; font-weight: 600; color: var(--text-strong); line-height: 1; margin: 0; }
+.lib-app .games .sp-result .big small { font-size: 1.3rem; color: var(--text-muted); font-weight: 500; }
+.lib-app .games .sp-result .label { color: var(--text-muted); letter-spacing: 0.08em; text-transform: uppercase; font-size: 0.72rem; margin: 0.3rem 0 1.5rem; }
+.lib-app .games .sp-stats { display: flex; justify-content: center; gap: 2.5rem; flex-wrap: wrap; margin-bottom: 1.8rem; }
+.lib-app .games .sp-stat .n { font-family: "JetBrains Mono", monospace; font-size: 1.7rem; color: var(--text-strong); }
+.lib-app .games .sp-stat .k { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.lib-app .games .sp-best { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1.4rem; }
+.lib-app .games .sp-best b { color: var(--text-emphasis); }
+.lib-app .games .sp-again { font: inherit; cursor: pointer; font-size: 0.95rem; background: var(--surface-inverse); color: var(--text-on-inverse-strong); border: none; border-radius: 8px; padding: 0.6rem 1.4rem; }
+.lib-app .games .sp-again:hover { background: var(--surface-inverse-hover); }

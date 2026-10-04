@@ -1,0 +1,160 @@
+{{- /* Mobile rail/list drawer wiring + middle-column scroll. Shared. */ -}}
+<script>
+(function () {
+  var app = document.querySelector(".lib-app");
+  if (!app) return;
+
+  /* ---- mobile drawers (rail = col 1, mid = col 2) ---- */
+  var open = function () { app.classList.add("rail-open"); };
+  var openMid = function () { app.classList.add("mid-open"); };
+  var close = function () { app.classList.remove("rail-open"); app.classList.remove("mid-open"); };
+  /* peel the top-most open drawer: rail first (so a click outside the rail closes
+     just the rail and reveals col 2), then the mid */
+  var closeTop = function () {
+    if (app.classList.contains("rail-open")) app.classList.remove("rail-open");
+    else if (app.classList.contains("mid-open")) app.classList.remove("mid-open");
+  };
+  document.querySelectorAll(".lib-mtrigger, .lib-rtrigger").forEach(function (b) { b.addEventListener("click", open); });
+
+  /* The reading-focus toggle is a .lib-dtrigger inside the sách or games header.
+     On desktop it cycles the reading-focus state (handled below); on mobile it
+     opens the list drawer like every other .lib-dtrigger. Exclude it from the
+     generic mobile binding so the two behaviours don't both fire. */
+  var focusBtn = document.querySelector(".sach-header .lib-dtrigger, .games-header .lib-dtrigger");
+  var isDesktop = function () { return window.matchMedia("(min-width: 961px)").matches; };
+  document.querySelectorAll(".lib-dtrigger").forEach(function (b) {
+    b.addEventListener("click", function () { if (b !== focusBtn || !isDesktop()) openMid(); });
+  });
+
+  /* ---- sách reader focus cycle (desktop): full → hide rail → hide rail+mid ---- */
+  if (focusBtn) {
+    var FOCUS_LABELS = {
+      "0": "Ẩn thanh điều hướng",
+      "1": "Ẩn mục lục",
+      "2": "Hiện lại thanh bên"
+    };
+    var readFocus = function () {
+      var v = document.documentElement.getAttribute("data-lib-focus");
+      return (v === "1" || v === "2") ? v : "0";
+    };
+    var applyFocus = function (state) {
+      if (state === "0") document.documentElement.removeAttribute("data-lib-focus");
+      else document.documentElement.setAttribute("data-lib-focus", state);
+      try { localStorage.setItem("lib-focus", state); } catch (e) {}
+      var label = FOCUS_LABELS[state];
+      focusBtn.setAttribute("aria-label", label);
+      focusBtn.setAttribute("title", label);
+    };
+    /* sync the button's label to whatever the head script already applied */
+    applyFocus(readFocus());
+    focusBtn.addEventListener("click", function () {
+      if (!isDesktop()) return; /* mobile: the openMid binding above handles it */
+      applyFocus(String((parseInt(readFocus(), 10) + 1) % 3));
+    });
+  }
+  var bd = app.querySelector(".lib-app-backdrop");
+  if (bd) bd.addEventListener("click", closeTop);
+  app.querySelectorAll(".lib-rail a, .lib-mid a").forEach(function (a) { a.addEventListener("click", close); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
+
+  /* ---- touch: swipe in from the right edge to open col 2; swipe right to close the top drawer ---- */
+  var sx = 0, sy = 0, fromR = false;
+  document.addEventListener("touchstart", function (e) {
+    var t = e.touches[0]; sx = t.clientX; sy = t.clientY;
+    fromR = !app.classList.contains("mid-open") && !app.classList.contains("rail-open")
+            && sx >= window.innerWidth - 28;
+  }, { passive: true });
+  document.addEventListener("touchmove", function (e) {
+    var t = e.touches[0], dx = t.clientX - sx, dy = t.clientY - sy;
+    if (Math.abs(dx) < 55 || Math.abs(dy) > 45) return;
+    if (fromR && dx < 0) { openMid(); fromR = false; }
+    else if (dx > 0) { closeTop(); }
+  }, { passive: true });
+
+  /* ---- middle column: scroll the active book/chapter into view ---- */
+  var midBody = document.querySelector(".lib-mid-body");
+  var openBook = midBody && midBody.querySelector(".lib-book[open]");
+  if (openBook) {
+    var target = openBook.querySelector(".lib-chapcell.is-current")
+      || openBook.querySelector(".lib-book-sum") || openBook;
+    var br = midBody.getBoundingClientRect(), tr = target.getBoundingClientRect();
+    midBody.scrollTop += (tr.top - br.top) - (midBody.clientHeight - tr.height) / 2;
+  }
+
+  /* ---- chapter reading-progress line (sách: footer top edge · kt: header bottom edge) ---- */
+  var rpScroll = document.querySelector(".lib-detail-scroll");
+  var rpLine = document.querySelector(".sf-progress");
+  if (rpScroll && rpLine) {
+    var rpUpdate = function () {
+      var max = rpScroll.scrollHeight - rpScroll.clientHeight;
+      rpLine.style.width = (max > 0 ? (rpScroll.scrollTop / max) * 100 : 0) + "%";
+    };
+    rpScroll.addEventListener("scroll", rpUpdate, { passive: true });
+    rpUpdate();
+  }
+})();
+(function () {
+  var app = document.querySelector(".lib-app");
+  if (!app) return;
+
+  var mobile = function () { return window.matchMedia("(max-width: 960px)").matches; };
+
+  /* ---- iPad band (≥961px): Kinh Thánh unfolds its children inline on click ---- */
+  app.querySelectorAll(".lib-navbar [data-toggle]").forEach(function (btn) {
+    btn.addEventListener("click", function (e) {
+      if (mobile()) return; /* mobile uses the subrow instead (handled below) */
+      e.stopPropagation();
+      var parent = btn.closest("[data-parent]");
+      var open = parent.classList.toggle("open");
+      btn.setAttribute("aria-expanded", open ? "true" : "false");
+    });
+  });
+  document.addEventListener("click", function () {
+    app.querySelectorAll(".lib-navbar-parent.open").forEach(function (p) {
+      p.classList.remove("open");
+      var b = p.querySelector("[data-toggle]");
+      if (b) b.setAttribute("aria-expanded", "false");
+    });
+  });
+
+  /* ---- Mobile (≤960px): tapping Kinh Thánh or "⋮" swaps the bar for a
+          same-height subrow of the matching items, with a back chevron ---- */
+  var navbar = app.querySelector(".lib-navbar");
+  if (navbar) {
+    var subrow = navbar.querySelector(".lib-navbar-subrow");
+    var subrowItems = navbar.querySelector(".lib-navbar-subrow-items");
+    var back = navbar.querySelector(".lib-navbar-back");
+    var openBtn = null;
+
+    var openSub = function (sel, btn) {
+      var src = navbar.querySelector(sel);
+      if (!src) return;
+      subrowItems.innerHTML = "";
+      src.querySelectorAll(".lib-navbar-item").forEach(function (it) {
+        subrowItems.appendChild(it.cloneNode(true));
+      });
+      navbar.classList.add("subrow-open");
+      if (openBtn) openBtn.setAttribute("aria-expanded", "false");
+      openBtn = btn || null;
+      if (openBtn) openBtn.setAttribute("aria-expanded", "true");
+    };
+    var closeSub = function () {
+      navbar.classList.remove("subrow-open");
+      if (openBtn) { openBtn.setAttribute("aria-expanded", "false"); openBtn = null; }
+    };
+
+    navbar.querySelectorAll("[data-sheet]").forEach(function (btn) {
+      btn.addEventListener("click", function (e) {
+        if (!mobile()) return; /* iPad: the inline [data-toggle] handler owns this */
+        e.preventDefault();
+        e.stopPropagation();
+        (openBtn === btn) ? closeSub() : openSub(btn.getAttribute("data-sheet"), btn);
+      });
+    });
+    if (back) back.addEventListener("click", closeSub);
+    /* a navigation tap inside the subrow closes it; escape closes it */
+    subrowItems.addEventListener("click", function (e) { if (e.target.closest("a")) closeSub(); });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeSub(); });
+  }
+})();
+</script>

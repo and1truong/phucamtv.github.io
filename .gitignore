@@ -1,0 +1,21 @@
+public/
+.hugo_build.lock
+.env
+.claude/*.lock
+.claude/data/
+.claude/tasks/
+**/.claude/settings.local.json
+.worktrees/
+*.log
+docs/superpowers/
+
+# Translation intermediate artifacts
+data/gc-source/
+data/gc-translated/
+data/colp-source/
+data/colp-translated/
+data/lde-source/
+data/lde-translated/
+data/da-source/
+data/da-translated/
+data/yt/transcripts/

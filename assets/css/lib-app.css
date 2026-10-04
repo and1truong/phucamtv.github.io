@@ -1,0 +1,896 @@
+/* ============================================================
+   Kinh Thánh — "Divine Library" app shell (scoped to .lib-app)
+   Ported from docs/designs/divine-library.v2.css · Ô-liu accent
+   Loaded only on /kt pages. All rules are scoped under .lib-app /
+   body.lib-app-body so nothing leaks to other sections.
+   ============================================================ */
+
+.lib-app {
+  /* fonts — reading size scale (--app-fs, default 1) */
+  --kt-display: "Newsreader", Georgia, serif;
+  --kt-ui: "Be Vietnam Pro", -apple-system, BlinkMacSystemFont, sans-serif;
+  --app-fs: 1;
+
+  /* sage accent (Ô-liu) */
+  --kt-accent: #6b7a3f;
+  --kt-accent-deep: #52602e;
+  --kt-terra: #8a9a4f;
+  --kt-accent-glow: rgba(107, 122, 63, .14);
+
+  /* dark rail */
+  --lib-rail-text: #d7cbb4;
+  --lib-rail-text-2: #9c8e75;
+
+  /* list column */
+  --kt-list-bg: color-mix(in srgb, var(--kt-accent) 7%, #f4efe6);
+  --kt-list-sel: #ffffff;
+  --kt-list-line: rgba(60, 45, 25, .09);
+
+  /* detail */
+  --kt-paper: #fffdf9;
+  --kt-paper-2: #f7f2e9;
+  --kt-sunken: #efe8db;
+
+  --kt-text: #2c2117;
+  --kt-text-2: #6a5d4d;
+  --kt-text-3: #9a8c79;
+
+  --kt-line: rgba(60, 45, 25, .10);
+  --kt-hairline: rgba(60, 45, 25, .07);
+
+  --kt-sh-sm: 0 1px 2px rgba(50, 35, 18, .07), 0 1px 4px rgba(50, 35, 18, .05);
+  --kt-sh-md: 0 6px 18px rgba(50, 35, 18, .12);
+  --kt-sh-win: 0 40px 90px rgba(30, 20, 8, .32);
+}
+
+@media (prefers-color-scheme: dark) {
+  .lib-app {
+    --kt-accent: #aebd72;
+    --kt-accent-deep: #98a85f;
+    --kt-terra: #c6d48a;
+    --kt-accent-glow: rgba(174, 189, 114, .16);
+
+    --lib-rail-text: #cbbfa8;
+    --lib-rail-text-2: #837458;
+
+    --kt-list-bg: color-mix(in srgb, var(--kt-accent) 9%, #1a150c);
+    --kt-list-sel: #251e12;
+    --kt-list-line: rgba(255, 244, 222, .08);
+
+    --kt-paper: #211a10;
+    --kt-paper-2: #1a150c;
+    --kt-sunken: #14100a;
+
+    --kt-text: #f3ecdd;
+    --kt-text-2: #bcaf99;
+    --kt-text-3: #897c66;
+
+    --kt-line: rgba(255, 244, 222, .10);
+    --kt-hairline: rgba(255, 244, 222, .06);
+
+    --kt-sh-sm: 0 1px 3px rgba(0, 0, 0, .4);
+    --kt-sh-md: 0 6px 18px rgba(0, 0, 0, .5);
+    --kt-sh-win: 0 40px 90px rgba(0, 0, 0, .6);
+  }
+  .lib-app .sach-header .sh-lesson-number { background: var(--accent); color: var(--text-on-inverse-strong); }
+}
+
+/* ---- reset within the app ---- */
+body.lib-app-body { margin: 0; padding: 0; overflow: hidden; background: var(--kt-paper); font-family: var(--kt-ui); }
+.lib-app *, .lib-app *::before, .lib-app *::after { box-sizing: border-box; }
+.lib-app { color: var(--kt-text); font-family: var(--kt-ui); -webkit-font-smoothing: antialiased; }
+.lib-app button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+.lib-app a { color: inherit; text-decoration: none; }
+.lib-app svg { width: 18px; height: 18px; flex: none; }
+.lib-app *::-webkit-scrollbar { width: 9px; }
+.lib-app *::-webkit-scrollbar-thumb { background: var(--kt-line); border-radius: 20px; border: 3px solid transparent; background-clip: content-box; }
+
+/* ============================================================
+   Shell grid
+   ============================================================ */
+.lib-app {
+  --lib-rail-w: 200px;
+  --lib-mid-w: 380px;
+  position: relative; width: 100vw; height: 100vh; height: 100dvh; overflow: hidden;
+  display: grid;
+  grid-template-columns: var(--lib-rail-w) minmax(300px, var(--lib-mid-w)) minmax(460px, 1fr);
+  grid-template-rows: 1fr;
+}
+
+/* audio player aligns with the detail column (col 3) */
+body.lib-app-body .audio-player-bar { left: calc(var(--lib-rail-w) + var(--lib-mid-w)); right: 0; }
+body.lib-app-body .audio-player-inner { max-width: none; margin: 0; }
+
+/* Article single — info column moves to the far right: rail | detail | info.
+   All three pinned to row 1: the list partial (col 3) precedes the content
+   (col 2) in the DOM, so without an explicit grid-row the sparse auto-placer
+   would push the content to an implicit second row. */
+@media (min-width: 961px) {
+  .lib-app--article, .lib-app--feed { grid-template-columns: var(--lib-rail-w) minmax(460px, 1fr) minmax(300px, var(--lib-mid-w)); }
+  .lib-app--article .lib-rail, .lib-app--feed .lib-rail { grid-column: 1; grid-row: 1; }
+  .lib-app--article .lib-detail, .lib-app--feed .lib-detail { grid-column: 2; grid-row: 1; }
+  .lib-app--article .lib-mid, .lib-app--feed .lib-mid { grid-column: 3; grid-row: 1; border-right: none; border-left: 1px solid var(--kt-list-line); }
+}
+
+/* ============================================================
+   Column 1 — rail
+   ============================================================ */
+.lib-rail {
+  grid-column: 1;
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--kt-accent) 22%, #1d1610),
+    color-mix(in srgb, var(--kt-accent) 13%, #130f08));
+  color: var(--lib-rail-text);
+  display: flex; flex-direction: column;
+  padding: 14px 10px 14px; overflow-y: auto;
+}
+.lib-rail-brand { display: flex; align-items: center; gap: 10px; margin-top: auto; padding: 16px 8px 4px; border-top: 1px solid rgba(255, 255, 255, .08); }
+.lib-rail-mark { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; box-shadow: var(--kt-sh-sm); background: linear-gradient(145deg, #fefcf7, #f2ecdd); }
+.lib-rail-mark svg { width: 26px; height: 26px; }
+.lib-rail-brand b { font-family: var(--kt-display); font-size: 17px; font-weight: 600; color: #fff; display: block; text-transform: uppercase; }
+.lib-rail-brand span span { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--lib-rail-text-2); display: block; }
+.lib-rail-nav { display: flex; flex-direction: column; gap: 1px; }
+.lib-rail-item { display: flex; align-items: center; gap: 11px; padding: 8px 10px; border-radius: 8px; color: var(--lib-rail-text); font-size: 14px; font-weight: 500; transition: background .15s, color .15s; }
+/* first-level items are upper-case; nested sub-items keep sentence case */
+.lib-rail-nav > .lib-rail-item { text-transform: uppercase; font-size: 12.5px; font-weight: 600; letter-spacing: .06em; }
+.lib-rail-item svg { width: 17px; height: 17px; opacity: .82; }
+.lib-rail-item:hover { background: rgba(255, 255, 255, .06); }
+.lib-rail-item.is-active { background: color-mix(in srgb, var(--kt-accent) 32%, transparent); color: #fff; }
+.lib-rail-item.is-active svg { color: #fff; opacity: 1; }
+/* nested sub-items (e.g. Trường Sa-bát under Kinh Thánh) */
+.lib-rail-sub { margin: 1px 0 1px 17px; padding-left: 9px; border-left: 1px solid rgba(255, 255, 255, .12); }
+.lib-rail-sub .lib-rail-item { font-size: 13.5px; padding: 7px 10px; color: var(--lib-rail-text-2); }
+.lib-rail-sub .lib-rail-item:hover { color: var(--lib-rail-text); }
+.lib-rail-sub .lib-rail-item svg { width: 16px; height: 16px; }
+
+/* ============================================================
+   Column 2 — contextual list
+   ============================================================ */
+.lib-mid { grid-column: 2; background: var(--kt-list-bg); border-right: 1px solid var(--kt-list-line); display: flex; flex-direction: column; overflow: hidden; }
+.lib-mid-head { display: flex; align-items: center; gap: 8px; padding: 14px 16px; border-bottom: 1px solid var(--kt-list-line); }
+.lib-mid-head h2 { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; margin: 0; }
+.lib-app a.lib-mid-back { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 600; color: var(--kt-accent-deep); padding: 2px 0; }
+.lib-mid-back svg { width: 16px; height: 16px; }
+.lib-mtrigger { display: none; }
+/* floating action buttons: col 3 → opens col 2 (.lib-dtrigger),
+   col 2 → opens col 1/rail (.lib-rtrigger). Mobile only; same look. */
+.lib-dtrigger, .lib-rtrigger { display: none; place-items: center; width: 42px; height: 42px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, .1); box-shadow: var(--kt-sh-md); transition: color .14s, box-shadow .2s, transform .14s; }
+/* .lib-app prefix beats the .lib-app button reset (background:none/color:inherit) */
+.lib-app .lib-dtrigger, .lib-app .lib-rtrigger { background: linear-gradient(180deg, color-mix(in srgb, var(--kt-accent) 22%, #1d1610), color-mix(in srgb, var(--kt-accent) 13%, #130f08)); color: var(--lib-rail-text); }
+.lib-dtrigger:hover, .lib-rtrigger:hover { color: #fff; box-shadow: var(--kt-sh-win); }
+.lib-dtrigger:active, .lib-rtrigger:active { transform: scale(.94); }
+.lib-mid-body { overflow-y: auto; flex: 1; padding-bottom: 84px; }
+
+/* book list */
+.lib-mid-test { font-family: var(--kt-display); font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--kt-accent-deep); padding: 16px 16px 6px; }
+.lib-mid-group { font-size: 11.5px; font-weight: 700; letter-spacing: .04em; color: var(--kt-text-3); padding: 10px 16px 4px; }
+.lib-nav-book { display: block; padding: 9px 16px; font-size: 14.5px; font-weight: 500; border-bottom: 1px solid var(--kt-list-line); transition: background .14s; }
+.lib-nav-book:hover { background: rgba(0, 0, 0, .025); }
+.lib-nav-book.is-current { background: var(--kt-list-sel); box-shadow: var(--kt-sh-sm); }
+.lib-nav-book small { display: block; font-size: 12px; color: var(--kt-text-3); font-weight: 400; margin-top: 2px; }
+
+/* book accordion (index) — click a book to reveal its chapter grid inline */
+.lib-book { border-bottom: 1px solid var(--kt-list-line); }
+.lib-book-sum { display: flex; align-items: center; gap: 10px; padding: 11px 16px; cursor: pointer; list-style: none; transition: background .14s; }
+.lib-book-sum::-webkit-details-marker { display: none; }
+.lib-book-sum:hover { background: rgba(0, 0, 0, .025); }
+.lib-book[open] > .lib-book-sum { background: var(--kt-list-sel); box-shadow: var(--kt-sh-sm); }
+.lib-book-name { flex: 1; min-width: 0; font-size: 14.5px; font-weight: 500; }
+.lib-book-name small { display: block; font-size: 12px; color: var(--kt-text-3); font-weight: 400; margin-top: 2px; }
+.lib-book-chev { width: 8px; height: 8px; border-right: 2px solid var(--kt-text-3); border-bottom: 2px solid var(--kt-text-3); transform: rotate(-45deg); transition: transform .2s; flex: none; margin-right: 3px; }
+.lib-book[open] .lib-book-chev { transform: rotate(45deg); }
+.lib-book .lib-chapgrid { grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 7px; padding: 6px 16px 16px; }
+.lib-book .lib-chapcell { font-size: 13px; border-radius: 9px; }
+
+/* OT/NT segmented tabs (pure-CSS radio control) */
+.lib-tab-radio { position: absolute; width: 0; height: 0; opacity: 0; pointer-events: none; }
+.lib-tabbar { display: flex; gap: 3px; margin: 12px 16px 6px; padding: 3px; background: var(--kt-sunken); border-radius: 11px; }
+.lib-tab { flex: 1; text-align: center; padding: 7px 0; border-radius: 8px; font-size: 13.5px; font-weight: 600; color: var(--kt-text-2); cursor: pointer; transition: color .15s, background .15s, box-shadow .15s; }
+.lib-tab:hover { color: var(--kt-text); }
+.lib-tabpanel { display: none; }
+#kt-tab-old:checked ~ .lib-mid-body .lib-tabpanel-old { display: block; }
+#kt-tab-new:checked ~ .lib-mid-body .lib-tabpanel-new { display: block; }
+#kt-tab-old:checked ~ .lib-tabbar label[for="kt-tab-old"],
+#kt-tab-new:checked ~ .lib-tabbar label[for="kt-tab-new"] { background: var(--kt-list-sel); color: var(--kt-text); box-shadow: var(--kt-sh-sm); }
+/* article column — three tabs (info / author / archive) */
+#art-tab-2:checked ~ .lib-mid-body .lib-tabpanel-2,
+#art-tab-3:checked ~ .lib-mid-body .lib-tabpanel-3 { display: block; }
+/* tab 1 fills the column so the author block can sit at the bottom */
+#art-tab-1:checked ~ .lib-mid-body .lib-tabpanel-1 { display: flex; flex-direction: column; min-height: 100%; }
+/* no audio player on articles → drop the reserved bottom space so the author
+   block lines up with the rail's brand at the foot of column 1 */
+.lib-app .lib-mid--article .lib-mid-body { padding-bottom: 14px; }
+#art-tab-1:checked ~ .lib-tabbar label[for="art-tab-1"],
+#art-tab-2:checked ~ .lib-tabbar label[for="art-tab-2"],
+#art-tab-3:checked ~ .lib-tabbar label[for="art-tab-3"] { background: var(--kt-list-sel); color: var(--kt-text); box-shadow: var(--kt-sh-sm); }
+
+/* chapter grid */
+.lib-chapgrid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 8px; padding: 16px; }
+.lib-chapcell { aspect-ratio: 1; display: grid; place-items: center; border-radius: 0; background: var(--kt-list-sel); box-shadow: var(--kt-sh-sm); font-size: 11px; font-weight: 600; color: var(--kt-text-2); transition: transform .14s, color .14s; }
+.lib-chapcell:hover { transform: translateY(-2px); color: var(--kt-text); }
+.lib-chapcell.is-current { background: linear-gradient(145deg, var(--kt-accent), var(--kt-accent-deep)); color: #fff; }
+
+/* ============================================================
+   Column 3 — detail
+   ============================================================ */
+.lib-detail { grid-column: 3; background: var(--kt-paper); display: flex; flex-direction: column; overflow: hidden; }
+.lib-detail-scroll { overflow-y: auto; flex: 1; }
+.lib-doc { max-width: 780px; margin: 0 auto; padding: 34px 44px 120px; }
+.lib-doc-eyebrow { display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--kt-accent); margin-bottom: 12px; }
+.lib-doc-eyebrow svg { width: 14px; height: 14px; }
+.lib-doc-title { font-family: var(--kt-display); font-size: 34px; font-weight: 600; line-height: 1.1; letter-spacing: -0.02em; margin: 0; }
+.lib-doc-title .en { color: var(--kt-text-3); font-weight: 400; font-size: .62em; }
+.lib-doc-sub { color: var(--kt-text-2); font-size: calc(16px * var(--app-fs)); line-height: 1.6; margin: 14px 0 0; }
+.lib-doc-stats { display: flex; align-items: center; gap: 9px; color: var(--kt-text-2); font-size: 13.5px; margin-top: 14px; }
+
+.lib-app a.lib-cta { display: inline-flex; align-items: center; gap: 8px; margin-top: 22px; padding: 11px 22px; border-radius: 22px; font-weight: 600; font-size: 14.5px; color: #fff; background: linear-gradient(135deg, var(--kt-accent), var(--kt-accent-deep)); box-shadow: var(--kt-sh-md); }
+.lib-app a.lib-cta:hover { filter: brightness(1.06); }
+.lib-cta svg { width: 17px; height: 17px; }
+
+/* commentary body */
+.lib-doc .content { margin-top: 26px; }
+.lib-doc .content h2 { font-family: var(--kt-display); font-size: 23px; font-weight: 600; margin: 30px 0 12px; letter-spacing: -0.01em; }
+.lib-doc .content h3 { font-family: var(--kt-display); font-size: 19px; font-weight: 600; margin: 24px 0 8px; }
+.lib-doc .content p { font-size: calc(16px * var(--app-fs)); line-height: 1.72; color: var(--kt-text); margin: 14px 0; }
+.lib-doc .content ul, .lib-doc .content ol { margin: 14px 0 14px 1.2em; }
+.lib-doc .content li { font-size: calc(15.5px * var(--app-fs)); line-height: 1.65; margin: 6px 0; }
+.lib-doc .content em { color: var(--kt-accent-deep); }
+
+/* ---- scripture (grid rows: number gutter + verse text) ---- */
+.lib-app .kt-prose { font-family: var(--kt-display); margin-top: 8px; }
+.lib-app .kt-v {
+  display: grid;
+  grid-template-columns: 2.1rem 1fr;
+  gap: 1rem;
+  padding: .6rem .4rem;
+  border-bottom: 1px solid var(--kt-hairline);
+}
+.lib-app .kt-v:last-child { border-bottom: none; }
+.lib-app .kt-v:hover { background: var(--kt-accent-glow); border-radius: 6px; }
+.lib-app .kt-v:target { background: var(--kt-accent-glow); border-radius: 8px; box-shadow: 0 0 0 8px var(--kt-accent-glow); }
+.lib-app .kt-vn {
+  font-family: var(--kt-ui);
+  font-size: calc(15px * var(--app-fs));
+  font-weight: 700;
+  line-height: 1;
+  padding-top: .35em;
+  text-align: right;
+  color: var(--kt-accent-deep);
+  user-select: none;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+.lib-app .kt-vt { font-size: calc(19.5px * var(--app-fs)); line-height: 1.85; color: var(--kt-text); margin: 0; }
+
+/* chapter prev/next (restyle) */
+.lib-app .kt-chapter-nav { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 40px; padding-top: 22px; border-top: 1px solid var(--kt-hairline); }
+.lib-app .kt-chapter-nav-link { font-weight: 600; font-size: 14px; color: var(--kt-accent-deep); padding: 9px 16px; border-radius: 20px; background: var(--kt-sunken); }
+.lib-app .kt-chapter-nav-link:hover { background: var(--kt-paper-2); box-shadow: var(--kt-sh-sm); }
+.lib-app .kt-chapter-nav-side--right { text-align: right; }
+.lib-app .kt-chapter-switch { display: none; } /* nav lives in the middle column now */
+
+/* ============================================================
+   Trường Sa-bát — middle list lessons + detail accordion
+   ============================================================ */
+/* lesson cards in the middle column */
+.lib-lesson { display: flex; align-items: center; gap: 12px; padding: 11px 16px; border-bottom: 1px solid var(--kt-list-line); transition: background .14s; }
+.lib-lesson:hover { background: rgba(0, 0, 0, .025); }
+.lib-lesson.is-current { background: var(--kt-list-sel); box-shadow: var(--kt-sh-sm); }
+.lib-lesson-num { width: 30px; height: 30px; flex: none; border-radius: 8px; display: grid; place-items: center; font-family: var(--kt-display); font-size: 14px; font-weight: 600; color: var(--kt-accent-deep); background: var(--kt-sunken); }
+.lib-lesson.is-current .lib-lesson-num { background: linear-gradient(145deg, var(--kt-accent), var(--kt-accent-deep)); color: #fff; }
+.lib-lesson-info { min-width: 0; }
+.lib-lesson-title { display: block; font-size: 14px; font-weight: 600; line-height: 1.3; }
+.lib-lesson-date { display: block; font-size: 12px; color: var(--kt-text-3); margin-top: 2px; }
+
+/* quarter cards (section detail) */
+.lib-doc-h { font-family: var(--kt-display); font-size: 20px; font-weight: 600; margin: 28px 0 12px; }
+.lib-qlist { display: grid; gap: 12px; }
+.lib-qcard { display: flex; flex-direction: column; gap: 5px; padding: 16px 18px; border-radius: 14px; background: var(--kt-paper-2); border: 1px solid var(--kt-hairline); transition: transform .16s, box-shadow .2s; }
+.lib-qcard:hover { transform: translateY(-2px); box-shadow: var(--kt-sh-md); }
+.lib-qcard-title { font-family: var(--kt-display); font-size: 17px; font-weight: 600; line-height: 1.25; }
+.lib-qcard-meta { font-size: 13px; color: var(--kt-text-3); }
+
+/* memory verse */
+.lib-memory { font-family: var(--kt-display); font-size: calc(19px * var(--app-fs)); line-height: 1.6; font-style: italic; color: var(--kt-text); margin: 22px 0; padding: 4px 0 4px 20px; border-left: 3px solid var(--kt-accent); }
+.lib-memory cite { display: block; font-style: normal; font-size: 14px; color: var(--kt-accent-deep); font-weight: 600; margin-top: 8px; }
+
+/* day accordion */
+.lib-days { margin-top: 28px; }
+.lib-day { border-top: 1px solid var(--kt-hairline); }
+.lib-day:last-child { border-bottom: 1px solid var(--kt-hairline); }
+.lib-day-sum { display: flex; align-items: center; gap: 11px; padding: 16px 4px; cursor: pointer; list-style: none; }
+.lib-day-sum::-webkit-details-marker { display: none; }
+.lib-day-chev { width: 9px; height: 9px; border-right: 2px solid var(--kt-text-3); border-bottom: 2px solid var(--kt-text-3); transform: rotate(-45deg); transition: transform .2s; flex: none; margin-left: 4px; }
+.lib-day[open] .lib-day-chev { transform: rotate(45deg); }
+.lib-day-label { font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--kt-accent-deep); flex: none; }
+.lib-day-ttl { font-family: var(--kt-display); font-size: 17px; font-weight: 600; color: var(--kt-text); }
+.lib-day-body { padding: 0 4px 22px 24px; }
+.lib-day-body p { font-size: calc(16px * var(--app-fs)); line-height: 1.72; margin: 12px 0; }
+.lib-day-body blockquote { margin: 14px 0; padding: 2px 0 2px 18px; border-left: 3px solid var(--kt-accent); font-family: var(--kt-display); color: var(--kt-text-2); }
+.lib-day-body h3 { font-family: var(--kt-display); font-size: 17px; font-weight: 600; margin: 18px 0 8px; }
+.lib-day-body p > code,
+.lib-day-body > code {
+  display: block;
+  font-family: var(--kt-display);
+  font-size: calc(16px * var(--app-fs));
+  font-style: italic;
+  line-height: 1.7;
+  color: var(--kt-text-2);
+  background: var(--kt-paper-2);
+  border-left: 3px solid var(--kt-accent);
+  border-radius: 0 6px 6px 0;
+  padding: 14px 16px;
+  margin: 18px 0;
+  box-shadow: var(--kt-sh-sm);
+}
+
+.lib-source { font-size: 13px; color: var(--kt-text-3); margin-top: 28px; }
+.lib-source a { color: var(--kt-accent-deep); font-weight: 600; }
+
+/* ============================================================
+   Floating app nav bar — between the 3-column layout (≥1160px) and
+   the mobile layout (≤960px), the rail collapses to a bottom bar.
+   The 960px mobile block below is the floor and is untouched.
+   ============================================================ */
+.lib-navbar { display: none; }
+
+/* the bar's look (only rendered when .rail-float adds it to the flow) */
+.lib-app .lib-navbar {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 35;
+  justify-content: center; align-items: stretch; pointer-events: none;
+}
+.lib-app .lib-navbar > * { pointer-events: auto; }
+/* mobile-only scaffolding — hidden by default (iPad band), shown in the ≤960px
+   block. The compound selector outranks `.lib-app .lib-navbar-item{display:flex}`
+   (which also matches the ⋮ button, since it carries .lib-navbar-item). */
+.lib-app .lib-navbar .lib-navbar-more,
+.lib-app .lib-navbar .lib-navbar-subrow { display: none; }
+.lib-navbar-inner {
+  flex: 1; display: flex; align-items: stretch; justify-content: space-around;
+  gap: 2px; padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--kt-accent) 24%, #1d1610),
+    color-mix(in srgb, var(--kt-accent) 15%, #130f08));
+  border-top: 1px solid rgba(255, 255, 255, .1);
+  box-shadow: var(--kt-sh-win);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+}
+
+/* items — icon + label (default) */
+.lib-app .lib-navbar-item {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 3px; padding: 7px 12px; border-radius: 14px; cursor: pointer;
+  color: var(--lib-rail-text); font-size: 11px; font-weight: 600; line-height: 1.1;
+  white-space: nowrap; background: none; border: none; font-family: inherit;
+  transition: background .15s, color .15s;
+}
+.lib-navbar-item svg { width: 21px; height: 21px; opacity: .85; }
+.lib-navbar-item:hover { background: rgba(255, 255, 255, .07); color: #fff; }
+.lib-navbar-item:hover svg { opacity: 1; }
+.lib-navbar-item.is-active { background: color-mix(in srgb, var(--kt-accent) 40%, transparent); color: #fff; }
+.lib-navbar-item.is-active svg { opacity: 1; }
+.lib-navbar-item.is-child { color: var(--lib-rail-text-2); }
+.lib-navbar-item.is-child:hover { color: #fff; }
+
+/* parent + inline children that unfold left→right on click */
+.lib-navbar-parent { display: flex; align-items: stretch; gap: 2px; }
+.lib-navbar-kids {
+  display: grid; grid-template-columns: 0fr; min-width: 0; overflow: hidden;
+  transition: grid-template-columns .32s cubic-bezier(.3, .8, .25, 1);
+  visibility: hidden;
+}
+.lib-navbar-parent.open .lib-navbar-kids { grid-template-columns: 1fr; margin-left: 2px; visibility: visible; }
+.lib-navbar-kids-track { display: flex; gap: 2px; min-width: 0; }
+.lib-navbar-kids .lib-navbar-item {
+  opacity: 0; transform: translateX(-8px);
+  transition: opacity .2s .04s, transform .28s cubic-bezier(.3, .8, .25, 1);
+}
+.lib-navbar-parent.open .lib-navbar-kids .lib-navbar-item { opacity: 1; transform: none; }
+.lib-navbar-parent.open .lib-navbar-kids .lib-navbar-item:nth-child(2) { transition-delay: .12s, .12s; }
+
+/* THE STATE — applied automatically in the 961–1160px band. Equal grid mins
+   so mid + detail share the space cleanly. No JS. */
+@media (min-width: 961px) and (max-width: 1160px) {
+  .lib-app:not(.no-mid) {
+    grid-template-columns: minmax(280px, var(--lib-mid-w)) minmax(280px, 1fr);
+  }
+  .lib-app:not(.no-mid) .lib-rail { display: none; }
+  .lib-app:not(.no-mid) .lib-mid { grid-column: 1; }
+  .lib-app:not(.no-mid) .lib-detail { grid-column: 2; }
+  .lib-app:not(.no-mid) .lib-navbar { display: flex; }
+  /* keep the mid list's last row clear of the floating bar */
+  .lib-app:not(.no-mid) .lib-mid-body { padding-bottom: 84px; }
+  /* .no-mid sections (kt index, nghien-cuu root, tin-ly, sach author):
+     hide the rail and show the bar too, so nav is consistent across the band */
+  .lib-app.no-mid { grid-template-columns: 1fr; }
+  .lib-app.no-mid .lib-rail { display: none; }
+  .lib-app.no-mid .lib-detail { grid-column: 1; }
+  .lib-app.no-mid .lib-navbar { display: flex; }
+  /* articles/feed: article content is the main column (left + wide), the
+     list/archive is the narrow sidebar (right). Flip the track widths so col 1
+     (articles) is the 1fr wide track and col 2 (archive) is the narrow one. */
+  .lib-app--article:not(.no-mid),
+  .lib-app--feed:not(.no-mid) {
+    grid-template-columns: minmax(280px, 1fr) minmax(260px, var(--lib-mid-w));
+  }
+  .lib-app--article:not(.no-mid) .lib-detail,
+  .lib-app--feed:not(.no-mid) .lib-detail { grid-column: 1; }
+  .lib-app--article:not(.no-mid) .lib-mid,
+  .lib-app--feed:not(.no-mid) .lib-mid { grid-column: 2; }
+  /* float the capsule above the nav bar, aligned to the detail column
+     (mid is col 1 here, so offset by its width); full width in no-mid */
+  body.lib-app-body .audio-player-bar { left: var(--lib-mid-w); bottom: 64px; }
+  body.lib-app-body:has(.lib-app.no-mid) .audio-player-bar { left: 0; }
+  /* clear the doc's last row (chapter pager) under the floating player + navbar */
+  body.lib-app-body.has-audio-player .lib-doc { padding-bottom: 176px; }
+}
+
+/* ============================================================
+   Mobile — drawer rail + master/detail stack
+   ============================================================ */
+.lib-app-backdrop { display: none; }
+
+@media (max-width: 960px) {
+  .lib-app { grid-template-columns: 1fr; }
+
+  /* Section nav is the bottom navbar (like the iPad band) — the rail drawer is
+     retired on mobile, so hide it and the triggers that used to open it. */
+  .lib-rail { display: none; }
+  /* Pin to the visual viewport. left/right:0 would track the *layout* viewport,
+     which widens with a page's pre-existing horizontal overflow and drags the
+     bar's right edge (the ⋮ button) off-screen. width:100vw clamps to the
+     screen width so every item — including ⋮ — stays reachable. */
+  .lib-app .lib-navbar { display: flex; position: fixed; left: 0; right: auto; width: 100vw; }
+  .lib-rtrigger, .lib-mtrigger-solo { display: none !important; }
+
+  .lib-app-backdrop { display: block; position: fixed; inset: 0; z-index: 55; background: rgba(0, 0, 0, .45); opacity: 0; pointer-events: none; transition: opacity .3s; }
+
+  /* detail is the base screen; mid (col 2) slides in from the right */
+  .lib-detail { grid-column: 1; }
+  .lib-mid {
+    position: fixed; top: 0; right: 0; bottom: 0; width: min(86vw, 360px); z-index: 58;
+    border-right: none; border-left: 1px solid var(--kt-list-line);
+    transform: translateX(100%); transition: transform .3s cubic-bezier(.3, .8, .25, 1);
+  }
+  .lib-app.mid-open .lib-mid { transform: translateX(0); box-shadow: var(--kt-sh-win); }
+  .lib-app.mid-open .lib-app-backdrop { opacity: 1; pointer-events: auto; }
+  /* the only mobile FAB: detail (col 3) → opens the mid list drawer (col 2) */
+  .lib-dtrigger { display: grid; position: fixed; top: 12px; right: 12px; z-index: 45; }
+  .lib-doc { padding: 24px 20px 120px; }
+  .lib-doc-title { font-size: 25px; }
+  /* keep the doc's last line clear of the floating bar */
+  .lib-detail-scroll { padding-bottom: 76px; }
+  /* detail goes full-screen → player stacks above the bar */
+  body.lib-app-body .audio-player-bar { left: 0; bottom: 64px; }
+
+  /* ---- Variant C: 4 primary items + narrow "⋮" More; tapping Kinh Thánh or ⋮
+          swaps the bar for a same-height subrow with a back chevron ---- */
+  .lib-navbar-inner { justify-content: space-between; gap: 0; }
+  /* every primary slot — plain items AND the Kinh Thánh parent wrapper —
+     shares the width equally; the ⋮ button stays narrow (flex:none). */
+  .lib-navbar-inner > .lib-navbar-item:not(.lib-navbar-more),
+  .lib-navbar-parent:not(.is-overflow) { flex: 1 1 0; min-width: 0; }
+  .lib-navbar-parent:not(.is-overflow) > .lib-navbar-item { flex: 1 1 0; min-width: 0; }
+  .lib-navbar-item:not(.lib-navbar-more) { padding-left: 4px; padding-right: 4px; }
+  .lib-navbar-item:not(.lib-navbar-more) span { overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  /* overflow items (5+) collapse into the ⋮ button on the bar */
+  .lib-navbar-item.is-overflow, .lib-navbar-parent.is-overflow { display: none; }
+  /* the iPad inline-unfold children never show on mobile (we use the subrow) */
+  .lib-navbar-kids { display: none; }
+  /* narrow icon-only "⋮" More button (matches the base hide selector's specificity) */
+  .lib-app .lib-navbar .lib-navbar-more { display: flex; flex: none; padding: 7px 8px; }
+  .lib-navbar-more svg { width: 22px; height: 22px; opacity: .85; }
+
+  /* the same-height subrow that replaces the bar while open.
+     Extra left padding so the round back pill clears the device corner. */
+  .lib-app .lib-navbar .lib-navbar-subrow {
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 36;
+    display: flex; align-items: stretch;
+    padding: 6px 12px calc(6px + env(safe-area-inset-bottom));
+    padding-left: max(12px, env(safe-area-inset-left));
+    background: linear-gradient(180deg,
+      color-mix(in srgb, var(--kt-accent) 24%, #1d1610),
+      color-mix(in srgb, var(--kt-accent) 15%, #130f08));
+    border-top: 1px solid rgba(255, 255, 255, .1);
+    box-shadow: var(--kt-sh-win);
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    transform: translateY(100%); opacity: 0; pointer-events: none;
+    transition: transform .26s cubic-bezier(.3, .8, .25, 1), opacity .2s;
+  }
+  .lib-navbar.subrow-open .lib-navbar-subrow { transform: translateY(0); opacity: 1; pointer-events: auto; }
+  .lib-navbar.subrow-open .lib-navbar-inner { opacity: 0; transition: opacity .15s; }
+  /* light pill on the dark bar so it reads as a clear, high-contrast control.
+     `.lib-app` scope beats `.lib-app button { background: none }`. */
+  .lib-app .lib-navbar-back {
+    flex: none; align-self: center; display: grid; place-items: center;
+    width: 38px; height: 38px; border-radius: 50%;
+    background: var(--lib-rail-text); border: none; cursor: pointer;
+    color: #1d1610; margin: 0 10px 0 0; box-shadow: 0 1px 3px rgba(0, 0, 0, .35);
+  }
+  .lib-navbar-back svg { width: 21px; height: 21px; opacity: 1; stroke-width: 2.8; }
+  .lib-app .lib-navbar-back:active { background: #fff; transform: scale(.93); }
+  .lib-navbar-subrow-items { display: flex; flex: 1; min-width: 0; gap: 2px; }
+  .lib-navbar-subrow .lib-navbar-item { flex: 1 1 0; min-width: 0; }
+  .lib-navbar-subrow .lib-navbar-item span { overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+}
+
+/* ============================================================
+   Nghiên Cứu — series cards + video reader (scoped to .lib-app)
+   ============================================================ */
+/* section root has no middle column: rail + detail only, wider doc for the grid */
+.lib-app.no-mid { grid-template-columns: var(--lib-rail-w) 1fr; }
+.lib-app.no-mid .lib-detail { grid-column: 2; }
+.lib-app.no-mid .lib-doc { max-width: 1080px; }
+.lib-mtrigger-solo { display: none; margin-bottom: 14px; }
+.lib-app a.lib-doc-eyebrow-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+.lib-doc-eyebrow-sep { color: var(--kt-text-3); }
+
+.lib-app .nc-series-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 18px; margin-top: 26px; }
+.lib-app .nc-series-card { display: flex; flex-direction: column; border-radius: 14px; overflow: hidden; background: var(--kt-paper-2); border: 1px solid var(--kt-hairline); transition: transform .16s, box-shadow .2s; }
+.lib-app .nc-series-card:hover { transform: translateY(-2px); box-shadow: var(--kt-sh-md); }
+.lib-app .nc-series-thumb { aspect-ratio: 16/9; overflow: hidden; background: var(--kt-sunken); }
+.lib-app .nc-series-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.lib-app .lib-doc .nc-series-thumb { margin: 22px 0 6px; border-radius: 12px; }
+.lib-app .nc-series-meta { padding: 14px 16px 16px; }
+.lib-app .nc-series-card-title { font-family: var(--kt-display); font-size: 17px; font-weight: 600; line-height: 1.25; margin: 0 0 4px; }
+.lib-app .nc-series-card-en { font-size: 13px; font-style: italic; color: var(--kt-text-3); margin-bottom: 7px; }
+.lib-app .nc-series-card-by { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: 13px; color: var(--kt-text-2); margin-bottom: 8px; }
+.lib-app .nc-series-card-dot { color: var(--kt-text-3); }
+.lib-app .nc-series-card-desc { font-size: 13.5px; line-height: 1.55; color: var(--kt-text-2); margin: 0; }
+
+/* video embed */
+.lib-app .nc-episode-video { margin: 22px 0; }
+.lib-app .youtube-wrapper { position: relative; aspect-ratio: 16/9; border-radius: 14px; overflow: hidden; background: #000; box-shadow: var(--kt-sh-md); }
+.lib-app .youtube-wrapper iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+
+/* prev / next */
+.lib-app .nc-prev-next { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 36px; padding-top: 22px; border-top: 1px solid var(--kt-hairline); }
+.lib-app .nc-prev-next-cell a { display: flex; flex-direction: column; gap: 4px; height: 100%; padding: 12px 16px; border-radius: 12px; background: var(--kt-paper-2); border: 1px solid var(--kt-hairline); transition: transform .16s, box-shadow .2s; }
+.lib-app .nc-prev-next-cell a:hover { transform: translateY(-2px); box-shadow: var(--kt-sh-md); }
+.lib-app .nc-prev-next-next { text-align: right; }
+.lib-app .nc-prev-next-label { font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--kt-accent-deep); }
+.lib-app .nc-prev-next-title { font-size: 14px; color: var(--kt-text); line-height: 1.35; }
+
+/* ============================================================
+   Tủ Sách — book library (cards + chapter content, scoped to .lib-app)
+   ============================================================ */
+/* bounded list of items shown in the detail (index / book / doctrine TOCs) */
+.lib-doc-list { margin-top: 10px; border-top: 1px solid var(--kt-list-line); }
+
+/* book cards on the library / author index */
+.lib-app .sach-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px; margin-top: 26px; }
+.lib-app .sach-book { display: flex; flex-direction: column; gap: 5px; padding: 20px; border-radius: 14px; background: var(--kt-paper-2); border: 1px solid var(--kt-hairline); transition: transform .16s, box-shadow .2s; }
+.lib-app .sach-book:hover { transform: translateY(-2px); box-shadow: var(--kt-sh-md); }
+.lib-app .sach-book-author { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--kt-accent-deep); }
+.lib-app .sach-book-title { font-family: var(--kt-display); font-size: 21px; font-weight: 600; line-height: 1.2; color: var(--kt-text); }
+.lib-app .sach-book-sub { font-size: 13.5px; font-style: italic; color: var(--kt-text-3); }
+.lib-app .sach-book-summary { font-size: 13.5px; line-height: 1.55; color: var(--kt-text-2); margin: 4px 0 2px; }
+.lib-app .sach-book-meta { display: flex; align-items: center; gap: 8px; margin-top: auto; padding-top: 6px; font-size: 12.5px; color: var(--kt-text-3); }
+.lib-app .sach-book-badge { padding: 1px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; color: #fff; background: linear-gradient(135deg, var(--kt-accent), var(--kt-accent-deep)); }
+
+/* ============================================================
+   Thánh Ca — hymn poster grid (scoped to .lib-app)
+   ============================================================ */
+.lib-app .tc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 18px; margin-top: 26px; }
+.lib-app .tc-card { display: flex; flex-direction: column; border-radius: 14px; overflow: hidden; background: var(--kt-paper-2); border: 1px solid var(--kt-hairline); transition: transform .16s, box-shadow .2s; }
+.lib-app .tc-card:hover { transform: translateY(-2px); box-shadow: var(--kt-sh-md); }
+.lib-app .tc-card-thumb { position: relative; aspect-ratio: 16/9; overflow: hidden; background: var(--kt-sunken); }
+.lib-app .tc-card-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .3s; }
+.lib-app .tc-card:hover .tc-card-thumb img { transform: scale(1.04); }
+.lib-app .tc-card-badge { position: absolute; top: 8px; left: 8px; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; color: #fff; background: color-mix(in srgb, var(--kt-accent-deep) 86%, transparent); }
+.lib-app .tc-card-play { position: absolute; inset: 0; display: grid; place-items: center; opacity: 0; transition: opacity .2s; }
+.lib-app .tc-card-play svg { width: 46px; height: 46px; color: #fff; filter: drop-shadow(0 2px 8px rgba(0, 0, 0, .5)); }
+.lib-app .tc-card:hover .tc-card-play, .lib-app .tc-card:focus-visible .tc-card-play { opacity: 1; }
+.lib-app .tc-card-meta { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 3px; }
+.lib-app .tc-card-title { font-family: var(--kt-display); font-size: 16px; font-weight: 600; line-height: 1.25; }
+.lib-app .tc-card-en { font-size: 12.5px; font-style: italic; color: var(--kt-text-3); }
+.lib-app .tc-card-by { font-size: 12.5px; color: var(--kt-text-2); margin-top: 2px; }
+
+/* ============================================================
+   Bài viết — article column tabs (author / tags / archive)
+   ============================================================ */
+.lib-tabpanel-1, .lib-tabpanel-2, .lib-tabpanel-3 { padding: 12px 16px 0; }
+.lib-app .art-author-block { margin-top: auto; padding-top: 18px; }
+.lib-app a.art-author { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; background: var(--kt-list-sel); box-shadow: var(--kt-sh-sm); }
+.lib-app .art-author-avatar { width: 46px; height: 46px; border-radius: 50%; object-fit: cover; flex: none; }
+.lib-app .art-author-info { min-width: 0; display: flex; flex-direction: column; }
+.lib-app .art-author-name { font-weight: 600; font-size: 14.5px; color: var(--kt-text); }
+.lib-app .art-author-meta { font-size: 12.5px; color: var(--kt-text-3); }
+.lib-app .art-meta-row { font-size: 12.5px; color: var(--kt-text-2); margin-bottom: 14px; }
+.lib-app .art-side-label { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--kt-text-3); margin-bottom: 8px; }
+/* column tags read as a vertical list */
+.lib-app .art-tags { display: flex; flex-direction: column; }
+.lib-app .art-tags a { display: flex; align-items: baseline; gap: 9px; padding: 9px 4px; font-size: 14px; color: var(--kt-text); border-bottom: 1px solid var(--kt-list-line); transition: color .14s; }
+.lib-app .art-tags a:last-child { border-bottom: none; }
+.lib-app .art-tags a::before { content: "#"; color: var(--kt-accent); font-weight: 700; }
+.lib-app .art-tags a:hover { color: var(--kt-accent-deep); }
+.lib-app .art-empty { font-size: 13.5px; color: var(--kt-text-3); }
+/* archive partial reused inside the tab — strip its front-page chrome */
+.lib-tabpanel-3 .home-sidebar { display: block; }
+.lib-tabpanel-3 .sidebar-card { display: block; background: none; border: none; padding: 0; box-shadow: none; }
+.lib-tabpanel-3 .sidebar-heading--mobile-toggle { pointer-events: none; }
+/* …and render the months as a vertical list, not the front-page chip strip (which overflows the drawer) */
+.lib-tabpanel-3 .month-nav { display: block; overflow: visible; white-space: normal; padding: 0; }
+.lib-tabpanel-3 .month-nav-year { display: block; border-bottom: 1px solid var(--kt-list-line); }
+.lib-tabpanel-3 .month-nav-year:last-child { border-bottom: none; }
+.lib-tabpanel-3 .month-nav-year-label { display: flex; align-items: center; gap: 6px; padding: 12px 2px; font-size: 12px; font-weight: 700; letter-spacing: .08em; color: var(--kt-text-3); cursor: pointer; }
+.lib-tabpanel-3 .month-nav-year-label::after { content: ""; width: 6px; height: 6px; border-right: 1.5px solid var(--kt-text-3); border-bottom: 1.5px solid var(--kt-text-3); transform: rotate(-45deg); transition: transform .2s ease; margin-left: auto; }
+.lib-tabpanel-3 .month-nav-year[open] > .month-nav-year-label::after { transform: rotate(45deg); }
+.lib-tabpanel-3 .month-nav-list { display: block; list-style: none; padding: 0 0 8px; margin: 0; }
+.lib-tabpanel-3 .month-nav-list li { display: block; }
+.lib-tabpanel-3 .month-nav-link { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0; padding: 8px 10px; font-size: 14px; background: none; border: none; border-radius: 8px; color: var(--kt-text); white-space: nowrap; }
+.lib-tabpanel-3 .month-nav-link:hover { background: var(--kt-list-sel); }
+.lib-tabpanel-3 .month-nav-link--active { background: var(--kt-list-sel); font-weight: 600; }
+.lib-tabpanel-3 .month-nav-month { flex: 1; }
+.lib-tabpanel-3 .month-nav-count { background: none; padding: 0; font-size: 12px; color: var(--kt-text-3); }
+
+/* ── Sách chapter pinned bars — twins of .games-header / .games-bankinfo,
+   scoped to the divine-library shell. Header pins to the top edge of the
+   detail column, footer to the bottom; both are flex siblings of
+   .lib-detail-scroll (rendered in sach/baseof.html, chapter pages only). ── */
+.lib-app .sach-header {
+  position: relative; z-index: 5; flex: 0 0 auto;
+  display: flex; align-items: center; gap: 0.9rem; margin: 0;
+  padding: 0.7rem 44px;
+  background: var(--surface-soft);
+  border-bottom: 1px solid var(--border-default);
+  box-shadow: 0 2px 12px var(--shadow-soft);
+}
+/* reading-progress line on the header's bottom hairline; JS sets width 0→100% */
+.lib-app .sach-header .sf-progress {
+  position: absolute; bottom: -1px; left: 0; height: 2px; width: 0;
+  background: var(--kt-accent); transition: width .12s linear;
+}
+.lib-app .sach-header .sh-icon {
+  flex: none; width: 34px; height: 34px; display: grid; place-items: center;
+  border-radius: 9px; background: var(--surface-inverse);
+  color: var(--text-on-inverse-strong); box-shadow: 0 1px 3px var(--shadow-soft);
+}
+.lib-app .sach-header .sh-icon svg { width: 18px; height: 18px; }
+.lib-app .sach-header .sh-book {
+  font-family: var(--kt-display); font-weight: 600; color: var(--text-strong);
+  font-size: 1.15rem; line-height: 1.15; margin: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
+}
+.lib-app .sach-header .sh-book .en { color: var(--kt-text-3); font-weight: 400; font-size: .72em; }
+.lib-app .sach-header .sh-actions { display: flex; gap: 0.3rem; margin-left: auto; flex: none; }
+/* The mục-lục button carries .lib-dtrigger. On desktop it is the reading-focus
+   toggle (cycles full → hide rail → hide rail+mid); on mobile it stays the FAB
+   that opens the chapter-list drawer. The .sh-btn rule forces the in-header look
+   and an explicit `display:grid` so the button shows on desktop (overriding the
+   .lib-dtrigger desktop `display:none`); the FAB-neutralizing props (static
+   position, no gradient/shadow) keep it sitting inside .sh-actions on mobile. */
+.lib-app .sach-header .sh-btn {
+  flex: none; position: static; width: 34px; height: 34px; display: grid; place-items: center;
+  background: var(--surface-raised); color: var(--text-secondary);
+  border: 1px solid var(--border-default); border-radius: 9px; cursor: pointer;
+  box-shadow: none; z-index: auto;
+  transition: background .12s ease, border-color .12s ease, color .12s ease;
+}
+.lib-app .sach-header .sh-btn:hover {
+  background: var(--surface-soft); border-color: var(--accent); color: var(--text-strong);
+}
+.lib-app .sach-header .sh-btn svg { width: 17px; height: 17px; }
+.lib-app .sach-header .sh-lesson-number { cursor: default; font-size: .82rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+/* one SVG per focus state lives in the button; show only the active one */
+.lib-app .sach-header .sh-btn .sh-ico { display: none; }
+:root:not([data-lib-focus]) .lib-app .sach-header .sh-btn .sh-ico-0,
+:root[data-lib-focus="0"] .lib-app .sach-header .sh-btn .sh-ico-0,
+:root[data-lib-focus="1"] .lib-app .sach-header .sh-btn .sh-ico-1,
+:root[data-lib-focus="2"] .lib-app .sach-header .sh-btn .sh-ico-2 { display: block; }
+
+/* nghiên-cứu episode header extras — the series name is a link (the sách book
+   name is plain text) and a "Bài N/total" counter sits before the actions. */
+.lib-app .nc-header .nh-series { color: var(--text-strong); transition: color .12s ease; }
+.lib-app a.nh-series:hover { color: var(--kt-accent-deep); }
+.lib-app .nc-header .nh-count {
+  flex: none; font-size: 0.7rem; font-weight: 700; letter-spacing: .04em;
+  text-transform: uppercase; color: var(--kt-accent-deep);
+  background: var(--kt-sunken); border-radius: 20px; padding: 3px 9px;
+}
+
+.lib-app .sach-footer {
+  position: relative; z-index: 5; flex: 0 0 auto; width: auto; margin: 0;
+  background: var(--surface-soft);
+  border-top: 1px solid var(--border-default);
+  box-shadow: 0 -2px 12px var(--shadow-soft);
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.6rem 44px; font-size: 0.84rem; color: var(--text-secondary);
+}
+/* reading-progress line on the footer's top hairline; JS sets width 0→100% */
+.lib-app .sach-footer .sf-progress {
+  position: absolute; top: -1px; left: 0; height: 2px; width: 0;
+  background: var(--kt-accent); transition: width .12s linear;
+}
+.lib-app .sach-footer .sf-label {
+  flex: none; font-size: 0.66rem; font-weight: 700; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--text-faint);
+}
+.lib-app .sach-footer .sf-chapter {
+  font-family: var(--kt-display); font-weight: 600; color: var(--text-strong);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
+}
+.lib-app .sach-footer .sf-pager { display: flex; gap: 0.3rem; margin-left: auto; flex: none; }
+.lib-app .sach-footer .sf-pager a,
+.lib-app .sach-footer .sf-pager .sf-pg-disabled {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  height: 30px; padding: 0 0.7rem;
+  background: var(--surface-raised); color: var(--text-secondary);
+  border: 1px solid var(--border-default); border-radius: 8px;
+  font-size: 0.78rem; font-weight: 600;
+  transition: background .12s ease, border-color .12s ease, color .12s ease;
+}
+.lib-app .sach-footer .sf-pager a:hover {
+  background: var(--surface-soft); border-color: var(--accent); color: var(--text-strong);
+}
+.lib-app .sach-footer .sf-pager .sf-pg-disabled { opacity: .4; }
+.lib-app .sach-footer .sf-pager svg { width: 15px; height: 15px; }
+
+/* ── Reading focus cycle (desktop only) ──────────────────────────────────────
+   The header button cycles three states via a <html data-lib-focus> attribute:
+     (unset/0) full        → rail | mid | reader
+     1         hide rail    → mid | reader
+     2         hide rail+mid→ reader only
+   We collapse a column by zeroing its grid track and hiding the element. Scoped
+   to .lib-app:has(.sach-header) and :has(.games-header) so only the chapter
+   reader and game player are affected, and to ≥961px so the mobile drawer
+   layout (which already hides rail/mid) is untouched. The track transition
+   animates the reader widening. */
+@media (min-width: 961px) {
+  :root[data-lib-focus="1"] .lib-app:has(.sach-header),
+  :root[data-lib-focus="1"] .lib-app:has(.games-header) {
+    grid-template-columns: 0 minmax(300px, var(--lib-mid-w)) minmax(460px, 1fr);
+  }
+  :root[data-lib-focus="1"] .lib-app:has(.sach-header) .lib-rail,
+  :root[data-lib-focus="1"] .lib-app:has(.games-header) .lib-rail { display: none; }
+
+  :root[data-lib-focus="2"] .lib-app:has(.sach-header),
+  :root[data-lib-focus="2"] .lib-app:has(.games-header) {
+    grid-template-columns: minmax(460px, 1fr);
+  }
+  :root[data-lib-focus="2"] .lib-app:has(.sach-header) .lib-rail,
+  :root[data-lib-focus="2"] .lib-app:has(.sach-header) .lib-mid,
+  :root[data-lib-focus="2"] .lib-app:has(.games-header) .lib-rail,
+  :root[data-lib-focus="2"] .lib-app:has(.games-header) .lib-mid { display: none; }
+
+  /* when rail+mid are collapsed, detail must move to the remaining track so it
+     doesn't leave a gap on the right */
+  :root[data-lib-focus="1"] .lib-app:has(.sach-header) .lib-detail,
+  :root[data-lib-focus="1"] .lib-app:has(.games-header) .lib-detail { grid-column: 3; }
+  :root[data-lib-focus="2"] .lib-app:has(.sach-header) .lib-detail,
+  :root[data-lib-focus="2"] .lib-app:has(.games-header) .lib-detail { grid-column: 1; }
+
+  /* The Kinh Thánh audio bar is position:fixed offset to the detail column's left
+     edge (rail + mid). When focus collapses those columns the bar must follow so
+     it spans the widened reader — matching the in-flow .sach-footer above it. */
+  :root[data-lib-focus="1"] body.lib-app-body:has(.sach-header) .audio-player-bar { left: var(--lib-mid-w); }
+  :root[data-lib-focus="2"] body.lib-app-body:has(.sach-header) .audio-player-bar { left: 0; }
+
+  .lib-app:has(.sach-header),
+  .lib-app:has(.games-header) { transition: grid-template-columns .3s cubic-bezier(.3,.8,.25,1); }
+}
+
+@media (max-width: 960px) {
+  .lib-app .sach-header { padding-left: 20px; padding-right: 20px; }
+  .lib-app .sach-footer { padding-left: 20px; padding-right: 20px; }
+  /* mobile bottom navbar floats over the detail column; reserve its height so
+     the footer stacks above it (same pattern as games' bankinfo) */
+  .lib-app .lib-detail--has-bankinfo { padding-bottom: 64px; }
+}
+@media (max-width: 600px) {
+  .lib-app .sach-footer .sf-pager .lbl { display: none; }
+}
+
+/* ============================================================
+   Khám Phá (home) — archive in col 2, article feed in detail
+   ============================================================ */
+/* col 2: monthly archive rendered native to the shell (mid-head already labels "Lưu trữ") */
+.lib-mid--home .lib-mid-body { padding: 8px 12px 84px; }
+.lib-mid--home .home-sidebar { display: block; }
+.lib-mid--home .sidebar-card { display: block; background: none; border: none; padding: 0; box-shadow: none; max-height: none; overflow: visible; }
+.lib-mid--home .sidebar-heading { display: none; }
+.lib-mid--home .month-nav { display: block; overflow: visible; white-space: normal; padding: 0; }
+.lib-mid--home .month-nav-year { display: block; border-bottom: 1px solid var(--kt-list-line); }
+.lib-mid--home .month-nav-year:last-child { border-bottom: none; }
+.lib-mid--home .month-nav-year-label { display: flex; align-items: center; gap: 6px; padding: 12px 2px; font-size: 12px; font-weight: 700; letter-spacing: .08em; color: var(--kt-text-3); cursor: pointer; }
+.lib-mid--home .month-nav-year-label::after { content: ""; width: 6px; height: 6px; border-right: 1.5px solid var(--kt-text-3); border-bottom: 1.5px solid var(--kt-text-3); transform: rotate(-45deg); transition: transform .2s ease; margin-left: auto; }
+.lib-mid--home .month-nav-year[open] > .month-nav-year-label::after { transform: rotate(45deg); }
+.lib-mid--home .month-nav-list { display: block; list-style: none; padding: 0 0 8px; margin: 0; }
+.lib-mid--home .month-nav-list li { display: block; }
+.lib-mid--home .month-nav-link { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0; padding: 8px 10px; font-size: 14px; background: none; border: none; border-radius: 8px; color: var(--kt-text); white-space: nowrap; }
+.lib-mid--home .month-nav-link:hover { background: var(--kt-list-sel); }
+.lib-mid--home .month-nav-link--active { background: var(--kt-list-sel); font-weight: 600; }
+.lib-mid--home .month-nav-month { flex: 1; }
+.lib-mid--home .month-nav-count { background: none; padding: 0; font-size: 12px; color: var(--kt-text-3); }
+/* detail: the article feed (home + month archive) */
+.lib-doc .home-feed { margin-top: 22px; }
+
+/* ============================================================
+   Tác giả (authors) — list (no-mid grid) + detail profile
+   ============================================================ */
+/* col 2: all-authors list */
+.lib-mid--authors .lib-author-avatar { width: 30px; height: 30px; flex: none; border-radius: 50%; object-fit: cover; }
+/* detail: author profile pinned header bar (same recipe as .sach-header) */
+.lib-app .author-header {
+  position: relative; z-index: 5; flex: 0 0 auto;
+  display: flex; align-items: center; gap: 0.9rem; margin: 0;
+  padding: 0.7rem 44px;
+  background: var(--surface-soft);
+  border-bottom: 1px solid var(--border-default);
+  box-shadow: 0 2px 12px var(--shadow-soft);
+}
+.lib-app .author-header .ah-avatar {
+  flex: none; width: 38px; height: 38px; border-radius: 50%; object-fit: cover;
+  box-shadow: 0 1px 3px var(--shadow-soft);
+}
+.lib-app .author-header .ah-id { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
+.lib-app .author-header .ah-name {
+  font-family: var(--kt-display); font-weight: 600; color: var(--text-strong);
+  font-size: 1.15rem; line-height: 1.15; margin: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.lib-app .author-header .ah-country {
+  font-size: 0.76rem; color: var(--text-secondary); margin: 1px 0 0; line-height: 1;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.lib-app .author-header .ah-actions { display: flex; gap: 0.3rem; margin-left: auto; flex: none; }
+.lib-app .author-header .ah-link {
+  flex: none; width: 34px; height: 34px; display: grid; place-items: center;
+  background: var(--surface-raised); color: var(--text-secondary);
+  border: 1px solid var(--border-default); border-radius: 9px;
+  transition: background .12s ease, border-color .12s ease, color .12s ease;
+}
+.lib-app .author-header .ah-link:hover {
+  background: var(--surface-soft); border-color: var(--accent); color: var(--text-strong);
+}
+.lib-app .author-header .ah-link svg { width: 17px; height: 17px; }
+/* the list-drawer trigger carries .lib-dtrigger: hidden on desktop (the author
+   list column is already visible); on mobile it drops the FAB look and sits in
+   the bar instead of floating over it */
+.lib-app .author-header .ah-btn { display: none; }
+.lib-doc--author .author-bio { margin-top: 0; }
+.lib-doc--author .lib-doc-h { margin-top: 26px; }
+
+/* chapter body fix-ups carried over from the old readers */
+.lib-doc .content .ch-iq { font-style: italic; color: var(--kt-accent-deep); }
+.lib-doc .content .ch-cite { font-weight: 600; color: var(--kt-accent-deep); }
+.lib-doc .content .ch-ref { display: inline-block; font-family: var(--kt-ui); font-size: .82em; font-variant-numeric: tabular-nums; color: var(--kt-text-3); background: var(--kt-sunken); border-radius: 5px; padding: 0 6px; margin-left: 4px; vertical-align: baseline; }
+
+@media (max-width: 960px) {
+  .lib-app .sach-grid { grid-template-columns: 1fr; }
+  .lib-app .nc-series-grid { grid-template-columns: 1fr; }
+  /* Thánh Ca on mobile: one hymn per row as a horizontal list card —
+     thumbnail left, title/meta right. Compact rows, easy-to-scan titles. */
+  .lib-app .tc-grid { grid-template-columns: 1fr; gap: 12px; }
+  .lib-app .tc-card { flex-direction: row; align-items: stretch; }
+  .lib-app .tc-card-thumb { flex: none; width: 132px; aspect-ratio: 16/10; align-self: stretch; }
+  .lib-app .tc-card-badge { top: 6px; left: 6px; font-size: 10px; padding: 1px 6px; }
+  /* the play overlay is a hover affordance — drop it on touch */
+  .lib-app .tc-card-play { display: none; }
+  .lib-app .tc-card-meta { flex: 1; min-width: 0; justify-content: center; padding: 10px 14px; gap: 2px; }
+  .lib-app .tc-card-title { font-size: 16px; }
+  .lib-app .tc-card-en { font-size: 12px; }
+  .lib-app .tc-card-by { font-size: 12px; }
+  .lib-app .nc-prev-next { grid-template-columns: 1fr; }
+  .lib-app .nc-prev-next-next { text-align: left; }
+
+  /* no middle column on root: detail is the in-flow home screen + a rail trigger */
+  .lib-app.no-mid { grid-template-columns: 1fr; }
+  .lib-app.no-mid .lib-detail { position: relative; inset: auto; transform: none; grid-column: 1; }
+  .lib-mtrigger-solo { display: grid; place-items: center; width: 36px; height: 36px; }
+
+  /* author header: tighten padding; pull the list-drawer trigger into the bar
+     (neutralize the .lib-dtrigger FAB so it sits in .ah-actions, not floating) */
+  .lib-app .author-header { padding-left: 20px; padding-right: 20px; }
+  .lib-app .author-header .ah-btn {
+    display: grid; place-items: center;
+    position: static; top: auto; right: auto; z-index: auto;
+    flex: none; width: 34px; height: 34px; border-radius: 9px;
+    background: var(--surface-raised); color: var(--text-secondary);
+    border: 1px solid var(--border-default); box-shadow: none;
+    transition: background .12s ease, border-color .12s ease, color .12s ease;
+  }
+  .lib-app .author-header .ah-btn:hover {
+    background: var(--surface-soft); border-color: var(--accent); color: var(--text-strong);
+  }
+  .lib-app .author-header .ah-btn svg { width: 17px; height: 17px; }
+}

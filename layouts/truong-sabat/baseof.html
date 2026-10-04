@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  {{- partial "head.html" . -}}
+</head>
+<body class="lib-app-body">
+  {{- $quarter := eq .Layout "quarter" -}}
+  <div class="lib-app{{ if eq .Layout "lesson" }} detail-open{{ end }}{{ if $quarter }} no-mid{{ end }}">
+    <div class="lib-app-backdrop"></div>
+    {{- partial "lib/rail.html" (dict "active" "truong-sabat") -}}
+    {{- if not $quarter }}{{- partial "truong-sabat/list.html" . -}}{{- end }}
+    <main class="lib-detail">
+      {{- if eq .Layout "lesson" }}{{- block "header" . }}{{- end }}{{- end }}
+      <div class="lib-detail-scroll">
+        {{- block "main" . }}{{- end }}
+      </div>
+    </main>
+  </div>
+  {{- partial "lib/app-js.html" . -}}
+</body>
+</html>

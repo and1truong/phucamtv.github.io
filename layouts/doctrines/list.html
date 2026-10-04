@@ -1,0 +1,17 @@
+{{ define "main" }}
+{{- $pages := where .Pages.ByWeight "Weight" "gt" 0 -}}
+<div class="lib-doc">
+  <button class="lib-mtrigger lib-mtrigger-solo" type="button" aria-label="Mở thư viện">{{ partial "lib/mark.html" . }}</button>
+  <div class="lib-doc-eyebrow">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.4 8.5 8 10 4.6-1.5 8-5 8-10V5z"/></svg>
+    Hai Mươi Tám Tín Lý
+  </div>
+  <h1 class="lib-doc-title">{{ .Title }}</h1>
+  {{ with .Content }}<div class="lib-doc-sub">{{ . }}</div>{{ end }}
+
+  <h3 class="lib-doc-h">Mục lục</h3>
+  <div class="lib-doc-list">
+    {{ partial "doctrines/items.html" (dict "pages" $pages "cur" "") }}
+  </div>
+</div>
+{{ end }}
